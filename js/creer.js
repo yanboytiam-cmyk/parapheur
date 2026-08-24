@@ -223,7 +223,22 @@ export function afficher(vue) {
 
     bouton.disabled = false;
     bouton.textContent = "Create signing link";
-    if (!r.ok) return dire(r.detail ?? message(r.raison));
+
+    if (!r.ok) {
+      // L'appareil garde un couple email et code que le serveur ne reconnait
+      // plus : mieux vaut renvoyer a l'entree que laisser la personne devant
+      // un message qu'elle ne peut pas resoudre.
+      if (r.raison === "identifiants") {
+        identite.oublier();
+        vue.innerHTML =
+          `<section class="carte etroite"><h2>Please sign in again</h2>` +
+          `<p class="aide">This device is no longer recognised. Your document ` +
+          `was not sent, nothing was lost.</p>` +
+          `<a class="principal bouton large" href="#/">Continue</a></section>`;
+        return;
+      }
+      return dire(r.detail ?? message(r.raison));
+    }
 
     edit?.detacher();
     nomsConnus.ajouter([nom]);
