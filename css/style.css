@@ -1088,3 +1088,35 @@ body.en-glissement .calque { cursor: grabbing; }
   animation: tourner 800ms linear infinite;
 }
 @keyframes tourner { to { transform: rotate(360deg); } }
+
+/* --- Le repli sur le lecteur du navigateur -------------------------------- */
+
+.lecteur-pdf {
+  width: 100%;
+  height: 68vh;
+  min-height: 420px;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon-petit);
+  background: #fff;
+  display: block;
+}
+
+.detail-technique {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--gris-clair);
+}
+.detail-technique summary { cursor: pointer; }
+.detail-technique code {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--papier);
+  border-radius: var(--rayon-petit);
+  font: 400 11.5px/1.5 var(--mono);
+  color: var(--gris);
+  word-break: break-word;
+}
+
+.barre-bas { display: flex; gap: 10px; justify-content: center; }
+.barre-bas .secondaire { max-width: 220px; }

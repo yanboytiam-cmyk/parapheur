@@ -78,7 +78,10 @@ export async function afficher(vue, jeton) {
     boutonSigner.disabled = false;
   } catch (souci) {
     console.error("apercu impossible :", souci);
-    return echecApercu(vue, d, jeton, souci?.cause ?? "document");
+    // Le rendu maison a echoue. Plutot que de laisser la personne devant une
+    // impasse, on lui donne le lecteur PDF du navigateur : elle lit le
+    // document, et elle signe. C'est tout ce qui compte.
+    return replierSurLeLecteur(vue, d, jeton, souci);
   }
 
   vue.querySelector("#signer").addEventListener(
@@ -87,43 +90,57 @@ export async function afficher(vue, jeton) {
   );
 }
 
-// Le document n'a pas pu s'afficher. On dit lequel des deux problemes c'est,
-// et on laisse une porte de sortie : reessayer, ou lire le PDF a part.
-function echecApercu(vue, d, jeton, cause) {
-  const textes = {
-    reseau: {
-      titre: "The document did not load",
-      aide: "Your connection dropped while the document was loading. This " +
-        "happens on a slow network. Try again, it usually works the second time.",
-    },
-    protege: {
-      titre: "This document is password-protected",
-      aide: "Parapheur cannot open a locked PDF. Ask the person who sent it " +
-        "to remove the password and send the link again.",
-    },
-    document: {
-      titre: "This document could not be displayed",
-      aide: "You can still open it in a new tab to read it, then come back " +
-        "here to sign.",
-    },
-  };
-  const t = textes[cause] ?? textes.document;
+// Le rendu maison a echoue. Le navigateur, lui, sait afficher un PDF : on lui
+// passe la main. La personne lit son document et signe, ce qui est le seul
+// but. Les champs a remplir sont annonces en clair, puisqu'on ne peut plus les
+// surligner sur les pages.
+function replierSurLeLecteur(vue, d, jeton, souci) {
+  const protege = souci?.cause === "protege";
+  if (protege) {
+    vue.innerHTML = `
+      <section class="carte etroite">
+        <h2>This document is locked</h2>
+        <p class="aide">It is protected by a password, so it cannot be signed
+        here. Ask the person who sent it to remove the password.</p>
+      </section>`;
+    document.querySelector(".barre-bas")?.remove();
+    return;
+  }
+
+  const aRemplir = (d.champs ?? []).map((c) => c.libelle).join(", ");
 
   vue.innerHTML = `
-    <section class="carte etroite">
-      <h2>${t.titre}</h2>
-      <p class="aide">${t.aide}</p>
-      <div class="rangee">
-        <button type="button" id="reessayer" class="principal">Try again</button>
-        <a class="secondaire bouton" href="${d.url_pdf}" target="_blank"
-           rel="noopener">Open the PDF</a>
+    <section class="carte">
+      <h2>${d.titre}</h2>
+      <div class="encart">
+        <strong>Reading this document in your browser's viewer</strong>
+        <p class="aide">Our own viewer could not open it, so we are showing you
+        the file directly. You can read it and sign as usual.</p>
       </div>
-    </section>`;
-  document.querySelector(".barre-bas")?.remove();
+      <iframe id="lecteur" class="lecteur-pdf" src="${d.url_pdf}"
+              title="${d.titre}"></iframe>
+      <p class="aide">If nothing appears above,
+        <a href="${d.url_pdf}" target="_blank" rel="noopener">open the document
+        in a new tab</a>.</p>
+      ${
+    aRemplir
+      ? `<p class="aide">You will be asked for: <strong>${aRemplir}</strong>,
+         and your signature.</p>`
+      : `<p class="aide">You will be asked for your signature.</p>`
+  }
+      <details class="detail-technique">
+        <summary>Technical detail</summary>
+        <code>${souci?.detail ?? souci?.message ?? "unknown"}</code>
+      </details>
+    </section>
+    <div class="barre-bas">
+      <button type="button" id="reessayer" class="secondaire">Try the viewer again</button>
+      <button type="button" id="signer" class="principal">Sign this document</button>
+    </div>`;
 
-  vue.querySelector("#reessayer").addEventListener("click", () => {
-    afficher(vue, jeton);
-  });
+  vue.querySelector("#reessayer").addEventListener("click", () => afficher(vue, jeton));
+  document.getElementById("signer")
+    .addEventListener("click", () => fenetreSignature(vue, d, jeton));
 }
 
 function champHtml(champ) {

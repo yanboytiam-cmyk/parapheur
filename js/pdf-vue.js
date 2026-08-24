@@ -36,12 +36,13 @@ export async function rendre(conteneur, source, surAvancement = () => {}) {
     ...(typeof source === "string" ? { url: source } : { data: source }),
     // Un mot de passe vide ouvre les PDF simplement verrouilles en modification.
     password: "",
-    // Sans les polices standard, un document qui n'embarque pas les siennes
-    // s'affiche vide.
-    useSystemFonts: true,
-    // On prefere un document affiche avec des defauts a un document refuse.
-    stopAtErrors: false,
-    isEvalSupported: false,
+    // Les polices standard (Helvetica, Times...) ne sont pas toujours
+    // embarquees dans le document. Sans ces donnees, pdf.js echoue ou affiche
+    // des pages vides. Le chemin doit finir par une barre.
+    standardFontDataUrl: new URL("../vendor/standard_fonts/", import.meta.url).href,
+    // Les cartes de caracteres des polices asiatiques, meme raison.
+    cMapUrl: new URL("../vendor/cmaps/", import.meta.url).href,
+    cMapPacked: true,
   });
 
   const attente = annoncerChargement(conteneur, "Loading the document…");
@@ -71,6 +72,9 @@ export async function rendre(conteneur, source, surAvancement = () => {}) {
     }
     throw Object.assign(new Error(String(souci?.message ?? souci)), {
       cause: "document",
+      // Le detail technique voyage jusqu'a l'ecran : sans lui, on cherche a
+      // l'aveugle un defaut qu'on ne reproduit pas.
+      detail: `${nom}: ${String(souci?.message ?? souci).slice(0, 200)}`,
     });
   }
   attente.remove();
