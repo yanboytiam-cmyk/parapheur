@@ -63,7 +63,9 @@ export function editeur(calques, surChangement = () => {}) {
       el.style.width = `${z.w * 100}%`;
       el.style.height = `${z.h * 100}%`;
       el.style.borderColor = couleur;
+      el.style.color = couleur;
       el.style.background = `${couleur}22`;
+      el.dataset.type = z.type;
       el.innerHTML =
         `<span class="etiquette" style="background:${couleur}">` +
         `${CHAMPS[z.type]?.libelle ?? z.type}</span>` +

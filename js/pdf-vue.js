@@ -57,7 +57,9 @@ export function marquer(calque, zone, couleur, etiquette) {
   el.style.width = `${zone.w * 100}%`;
   el.style.height = `${zone.h * 100}%`;
   el.style.borderColor = couleur;
+  el.style.color = couleur;
   el.style.background = `${couleur}1f`;
+  el.dataset.type = zone.type;
   el.innerHTML = `<span class="etiquette" style="background:${couleur}">${etiquette}</span>`;
   calque.appendChild(el);
 }
