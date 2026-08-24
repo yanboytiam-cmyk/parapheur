@@ -1120,3 +1120,14 @@ body.en-glissement .calque { cursor: grabbing; }
 
 .barre-bas { display: flex; gap: 10px; justify-content: center; }
 .barre-bas .secondaire { max-width: 220px; }
+
+.detail-visible {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, .7);
+  border-radius: 6px;
+  font: 400 11.5px/1.5 var(--mono);
+  color: var(--gris);
+  word-break: break-word;
+}

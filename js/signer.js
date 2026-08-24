@@ -38,6 +38,29 @@ function annonce(vue, titre, texte, avecTrait = false) {
   document.querySelector(".barre-bas")?.remove();
 }
 
+// Le PDF voyage en base64 dans la reponse. On le rend a pdf.js sous forme
+// d'octets ; si la reponse ne le portait pas, on retombe sur l'URL signee.
+function octetsDu(d) {
+  if (!d.pdf_base64) return d.url_pdf;
+  try {
+    return Uint8Array.from(atob(d.pdf_base64), (c) => c.charCodeAt(0));
+  } catch {
+    return d.url_pdf;
+  }
+}
+
+// Pour le lecteur du navigateur et le bouton « ouvrir dans un onglet » : un
+// lien local vaut mieux qu'un lien vers un autre domaine.
+function lienLocalPdf(d) {
+  if (!d.pdf_base64) return d.url_pdf;
+  try {
+    const octets = Uint8Array.from(atob(d.pdf_base64), (c) => c.charCodeAt(0));
+    return URL.createObjectURL(new Blob([octets], { type: "application/pdf" }));
+  } catch {
+    return d.url_pdf;
+  }
+}
+
 export async function afficher(vue, jeton) {
   if (!jeton) return annonce(vue, "Invalid link", message("introuvable"));
 
@@ -71,7 +94,9 @@ export async function afficher(vue, jeton) {
   boutonSigner.disabled = true;
 
   try {
-    const calques = await rendre(zoneDoc, d.url_pdf);
+    // Le document arrive dans la reponse : pdf.js le lit depuis la memoire,
+    // sans avoir a joindre un autre domaine.
+    const calques = await rendre(zoneDoc, octetsDu(d));
     for (const z of d.zones ?? []) {
       marquer(calques[z.page], z, couleurDe(z.type), CHAMPS[z.type]?.libelle ?? z.type);
     }
@@ -116,12 +141,13 @@ function replierSurLeLecteur(vue, d, jeton, souci) {
         <strong>Reading this document in your browser's viewer</strong>
         <p class="aide">Our own viewer could not open it, so we are showing you
         the file directly. You can read it and sign as usual.</p>
+        <code class="detail-visible">${souci?.detail ?? souci?.message ?? "unknown"}</code>
       </div>
-      <iframe id="lecteur" class="lecteur-pdf" src="${d.url_pdf}"
+      <iframe id="lecteur" class="lecteur-pdf" src="${lienLocalPdf(d)}"
               title="${d.titre}"></iframe>
       <p class="aide">If nothing appears above,
-        <a href="${d.url_pdf}" target="_blank" rel="noopener">open the document
-        in a new tab</a>.</p>
+        <a href="${lienLocalPdf(d)}" target="_blank" rel="noopener">open the
+        document in a new tab</a>.</p>
       ${
     aRemplir
       ? `<p class="aide">You will be asked for: <strong>${aRemplir}</strong>,
