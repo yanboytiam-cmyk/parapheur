@@ -1,9 +1,8 @@
 import { api, message } from "./api.js";
-import { identite, nomsConnus } from "./identite.js";
+import { identite } from "./identite.js";
 import { rendre } from "./pdf-vue.js";
 import { couleurDe, editeur } from "./editeur-zones.js";
 import { CHAMPS } from "./champs.js";
-import { marqueurHtml } from "./validation.js";
 import { activerGlisser } from "./glisser-palette.js";
 
 // Les champs, ranges comme on les cherche : d'abord le geste, puis qui, puis
@@ -48,15 +47,6 @@ export function afficher(vue) {
 
       <div id="atelier" hidden>
         <div class="colonne-outils">
-          <h3>Who signs</h3>
-          <div class="champ">
-            <input id="signataire" type="text" list="noms-connus"
-                   placeholder="Their name" autocomplete="off">
-            ${marqueurHtml()}
-          </div>
-          <p class="aide">One person per document. For a second signature,
-          download the signed file and send it again.</p>
-
           <h3>Place a field</h3>
           <p class="aide">Drag a field onto the document, or pick one and click
           where it goes. Drag a placed field to move it, use its corner to
@@ -69,10 +59,7 @@ export function afficher(vue) {
         </div>
         <div id="document" class="document"></div>
       </div>
-    </section>
-    <datalist id="noms-connus">
-      ${nomsConnus.lister().map((n) => `<option value="${n}"></option>`).join("")}
-    </datalist>`;
+    </section>`;
 
   const champFichier = vue.querySelector("#fichier");
   const atelier = vue.querySelector("#atelier");
@@ -162,16 +149,9 @@ export function afficher(vue) {
         dire("");
         dessinerResume(zones);
       });
-      const nomSignataire = vue.querySelector("#signataire");
-      const marquerNom = () => {
-        nomSignataire.closest(".champ").dataset.etat =
-          nomSignataire.value.trim().length >= 2 ? "valide" : "";
-      };
-      nomSignataire.addEventListener("input", marquerNom);
       dessinerTypes();
       dessinerResume([]);
       activerGlisser(vue.querySelector("#types"), edit, () => dessinerTypes());
-      vue.querySelector("#signataire").focus();
     } catch (souci) {
       atelier.hidden = true;
       vue.querySelector("#depot").hidden = false;
@@ -189,14 +169,6 @@ export function afficher(vue) {
 
   vue.querySelector("#creer").addEventListener("click", async () => {
     dire("");
-    const champNom = vue.querySelector("#signataire");
-    const nom = champNom.value.trim();
-    if (nom.length < 2) {
-      champNom.closest(".champ").dataset.etat = "erreur";
-      champNom.focus();
-      return dire("Enter the name of the person who signs.");
-    }
-
     const zones = edit?.zones() ?? [];
     const signatures = zones.filter((z) => z.type === "signature").length;
     if (signatures === 0) {
@@ -217,7 +189,6 @@ export function afficher(vue) {
       appareil_id: id.appareil_id,
       titre: fichier.name,
       pdf_base64: await enBase64(fichier),
-      signataire: nom,
       zones,
     });
 
@@ -241,7 +212,6 @@ export function afficher(vue) {
     }
 
     edit?.detacher();
-    nomsConnus.ajouter([nom]);
     afficherLien(vue, r.lien);
   });
 }
@@ -253,10 +223,9 @@ function afficherLien(vue, lien) {
   vue.innerHTML = `
     <section class="carte etroite">
       <h2>Your signing link is ready</h2>
-      <p class="aide">Send this link to ${lien.nom}, by WhatsApp or however you
-      prefer. Parapheur does not send anything to anyone.</p>
+      <p class="aide">Send this link to the person who signs, by WhatsApp or
+      however you prefer. Parapheur does not send anything to anyone.</p>
       <div class="lien-signataire" data-url="${url}">
-        <strong>${lien.nom}</strong>
         <input type="text" readonly value="${url}">
         <button type="button" class="secondaire" id="copier">Copy</button>
       </div>

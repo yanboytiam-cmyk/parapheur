@@ -126,13 +126,9 @@ function echecApercu(vue, d, jeton, cause) {
   });
 }
 
-function champHtml(champ, nomSuggere) {
+function champHtml(champ) {
   const attributs =
     `id="champ-${champ.id}" data-id="${champ.id}" data-type="${champ.type}"`;
-  // Le nom que le createur a saisi prerempli le premier champ de nom.
-  const valeur = ["nom_complet", "prenom", "nom"].includes(champ.type)
-    ? nomSuggere
-    : "";
   const type = champ.clavier === "tel" ? "tel" : champ.clavier === "email" ? "email" : "text";
 
   const exemple = EXEMPLES[champ.type] ?? "";
@@ -141,7 +137,7 @@ function champHtml(champ, nomSuggere) {
     : `<input ${attributs} type="${type}" ` +
       `inputmode="${champ.clavier === "tel" ? "tel" : "text"}" ` +
       `autocomplete="${autoCompletion(champ.type)}" ` +
-      `placeholder="${exemple}" value="${valeur}">`;
+      `placeholder="${exemple}">`;
 
   return `<div class="champ">
     <label for="champ-${champ.id}">${champ.libelle}${
@@ -177,7 +173,7 @@ function fenetreSignature(vue, d, jeton) {
          aria-label="Sign this document">
       <h3>Sign this document</h3>
 
-      ${champs.map((c) => champHtml(c, d.nom_attendu ?? "")).join("")}
+      ${champs.map((c) => champHtml(c)).join("")}
 
       <label for="trace">Your signature</label>
       <div class="cadre-trace">
