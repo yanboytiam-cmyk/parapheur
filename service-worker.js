@@ -1,11 +1,34 @@
-// Aucun cache d'application, volontairement.
+// Deux roles : recevoir les notifications, et empecher le cache de mentir.
 //
-// Un correctif deploye doit etre visible tout de suite : sur GitHub Pages, une
-// page mise en cache reste servie plusieurs minutes, et le client croit que
-// rien n'a bouge. Ce service worker n'existe que pour les notifications.
+// GitHub Pages sert ses fichiers avec `Cache-Control: max-age=600` et ne
+// permet pas de changer cet en-tete. Sans ce qui suit, un correctif deploye
+// reste invisible dix minutes : l'utilisateur voit l'ancienne version, signale
+// que « rien n'a change », et on cherche un bug qui n'existe plus.
+//
+// Le service worker rejoue donc chaque requete de code en ignorant le cache
+// HTTP. Aucune mise en cache de notre cote : l'app est petite, et une version
+// juste vaut mieux qu'une version rapide.
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (evt) => evt.waitUntil(self.clients.claim()));
+
+const CODE = /\.(js|mjs|css|html|webmanifest)$/;
+
+self.addEventListener("fetch", (evt) => {
+  const req = evt.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  const estCode = CODE.test(url.pathname) || url.pathname.endsWith("/");
+  if (!estCode) return;
+
+  evt.respondWith(
+    // `cache: reload` court-circuite le cache HTTP du navigateur.
+    fetch(req, { cache: "reload" }).catch(() => fetch(req)),
+  );
+});
 
 self.addEventListener("push", (evt) => {
   let d = {};
