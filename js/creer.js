@@ -4,6 +4,7 @@ import { rendre } from "./pdf-vue.js";
 import { couleurDe, editeur } from "./editeur-zones.js";
 import { CHAMPS } from "./champs.js";
 import { marqueurHtml } from "./validation.js";
+import { activerGlisser } from "./glisser-palette.js";
 
 // Les champs, ranges comme on les cherche : d'abord le geste, puis qui, puis
 // comment joindre, puis ou.
@@ -57,8 +58,9 @@ export function afficher(vue) {
           download the signed file and send it again.</p>
 
           <h3>Place a field</h3>
-          <p class="aide">Pick one, then click on the document. Drag to size it,
-          drag it again to move, Ctrl+Z to undo.</p>
+          <p class="aide">Drag a field onto the document, or pick one and click
+          where it goes. Drag a placed field to move it, use its corner to
+          resize, Ctrl+Z to undo.</p>
           <div id="types"></div>
 
           <div id="resume" class="resume"></div>
@@ -168,11 +170,19 @@ export function afficher(vue) {
       nomSignataire.addEventListener("input", marquerNom);
       dessinerTypes();
       dessinerResume([]);
+      activerGlisser(vue.querySelector("#types"), edit, () => dessinerTypes());
       vue.querySelector("#signataire").focus();
-    } catch {
+    } catch (souci) {
       atelier.hidden = true;
       vue.querySelector("#depot").hidden = false;
-      dire(message("pas_un_pdf"));
+      console.error("apercu impossible :", souci);
+      const nom = String(souci?.name ?? "");
+      dire(
+        nom === "PasswordException"
+          ? "This PDF is password-protected. Remove the password and try again."
+          : "This PDF could not be opened. If it opens elsewhere, tell Yanis: " +
+            (souci?.message ?? "unknown error").slice(0, 120),
+      );
     }
   });
 

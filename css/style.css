@@ -1016,3 +1016,54 @@ footer {
   text-indent: .5em;
   text-align: center;
 }
+
+/* --- Le glisser-deposer depuis la palette --------------------------------- */
+
+.puce { touch-action: none; user-select: none; }
+.puce-prise { opacity: .35; }
+
+body.en-glissement { cursor: grabbing; }
+body.en-glissement .calque { cursor: grabbing; }
+
+/* Ce qui suit le curseur : le cadre tel qu'il sera pose. */
+.fantome {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 176px;
+  height: 54px;
+  border: 1.5px dashed currentColor;
+  border-radius: 5px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, currentColor 16%, transparent),
+      color-mix(in srgb, currentColor 7%, transparent));
+  pointer-events: none;
+  z-index: 90;
+  opacity: .75;
+  transition: opacity 140ms, box-shadow 140ms, border-style 140ms;
+}
+.fantome.fantome-pret {
+  opacity: 1;
+  border-style: solid;
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, currentColor 80%, transparent);
+}
+
+/* La zone qu'on tient : elle se detache du document, sans animation d'entree
+   qui repartirait a chaque mouvement. */
+.zone-tenue {
+  animation: none !important;
+  z-index: 5;
+  box-shadow: 0 10px 28px -8px color-mix(in srgb, currentColor 75%, transparent);
+}
+.zone-tenue::after { opacity: 1; }
+.zone-tenue .poignee, .zone-tenue .retirer { opacity: 1; transform: none; }
+
+/* La sortie : la zone s'efface au lieu de disparaitre d'un coup. */
+.zone-part {
+  animation: partir 240ms cubic-bezier(.4, 0, .6, 1) both !important;
+  pointer-events: none;
+}
+@keyframes partir {
+  to { opacity: 0; transform: scale(.88); }
+}
