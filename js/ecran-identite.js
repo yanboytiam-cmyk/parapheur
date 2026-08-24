@@ -3,8 +3,15 @@ import { identite } from "./identite.js";
 import { CODES_TRIVIAUX } from "./champs.js";
 import { CHEMIN_PARAPHE } from "./marque.js";
 
-// Le premier lancement sur un appareil. Deux champs, aucun autre, et il ne les
-// reverra plus ici.
+// L'entree dans l'outil, en trois ecrans.
+//
+//   accueil  : ce que fait Parapheur, et le choix entre creer et retrouver
+//   creer    : email, code, et la confirmation qu'on l'a note
+//   entrer   : email et code
+//
+// Le code n'est pas un champ de plus : c'est la cle du compte, et la personne
+// doit le savoir au moment ou elle le choisit. Un code oublie, c'est un compte
+// perdu, puisqu'il n'y a aucun email de recuperation.
 
 function codeAuHasard() {
   const triviaux = new Set(CODES_TRIVIAUX);
@@ -16,136 +23,217 @@ function codeAuHasard() {
   return code;
 }
 
+const PARAPHE = `<svg class="accueil-signe" viewBox="0 0 110 100" aria-hidden="true">
+  <path d="${CHEMIN_PARAPHE}"/></svg>`;
+
 export function afficher(vue, ensuite) {
+  accueil(vue, ensuite);
+}
+
+// --- Ecran 1 : ce que c'est, et le choix ----------------------------------
+
+function accueil(vue, ensuite) {
+  vue.innerHTML = `
+    <section class="carte etroite accueil-carte">
+      <div class="accueil">
+        ${PARAPHE}
+        <h2>Parapheur</h2>
+        <p class="accroche">Send a PDF to be signed.<br>No accounts to manage,
+        nothing kept.</p>
+      </div>
+
+      <ul class="promesses">
+        <li><span class="puce-promesse puce-1"></span>Drop a PDF, place the
+        fields, send one link</li>
+        <li><span class="puce-promesse puce-2"></span>They sign from their
+        phone, nothing to install</li>
+        <li><span class="puce-promesse puce-3"></span>Deleted 15 minutes after
+        you download it</li>
+      </ul>
+
+      <button type="button" id="vers-creer" class="principal large">
+        Create my account
+      </button>
+      <button type="button" id="vers-entrer" class="secondaire large">
+        I already have one
+      </button>
+      <p class="aide centre">Free. It takes about ten seconds.</p>
+    </section>`;
+
+  vue.querySelector("#vers-creer")
+    .addEventListener("click", () => formulaire(vue, ensuite, "creer"));
+  vue.querySelector("#vers-entrer")
+    .addEventListener("click", () => formulaire(vue, ensuite, "entrer"));
+}
+
+// --- Ecrans 2 et 3 : le formulaire ----------------------------------------
+
+function formulaire(vue, ensuite, mode) {
+  const creation = mode === "creer";
+
   vue.innerHTML = `
     <section class="carte etroite">
-      <div class="accueil">
-        <svg class="accueil-signe" viewBox="0 0 110 100" aria-hidden="true">
-          <path d="${CHEMIN_PARAPHE}"/>
-        </svg>
-        <h2>Parapheur</h2>
-        <p class="aide">Send a PDF to be signed. No accounts, nothing kept.</p>
-      </div>
-      <p class="aide">Your email and a 4-digit code you choose. We will not ask
-      again on this device.</p>
+      <button type="button" id="retour" class="lien retour">← Back</button>
+      <h2>${creation ? "Create your account" : "Welcome back"}</h2>
+      <p class="aide">${
+    creation
+      ? "Two things, and you are done. No password, no confirmation email."
+      : "Enter the email and code you chose. We will not ask again on this device."
+  }</p>
 
       <form id="form-identite" novalidate>
         <div class="champ">
-          <label for="email">Email</label>
+          <label for="email">Your email</label>
           <input id="email" type="email" autocomplete="email"
                  placeholder="you@clinic.com" required>
         </div>
 
         <div class="champ">
-          <label for="code">4-digit code</label>
+          <label for="code">${creation ? "Choose a 4-digit code" : "Your 4-digit code"}</label>
           <input id="code" type="text" inputmode="numeric" maxlength="4"
-                 autocomplete="off" placeholder="••••" required>
+                 autocomplete="off" placeholder="••••" required
+                 class="champ-code">
         </div>
-        <button type="button" id="hasard" class="lien">Pick a code for me</button>
+        ${
+    creation
+      ? `<button type="button" id="hasard" class="lien">Pick one for me</button>
+
+        <div class="champ">
+          <label for="code2">Type it again</label>
+          <input id="code2" type="text" inputmode="numeric" maxlength="4"
+                 autocomplete="off" placeholder="••••" required
+                 class="champ-code">
+        </div>
+
+        <div class="avertissement">
+          <strong>Write this code down.</strong>
+          <p>It is the key to your account. There is no recovery email and no
+          way to reset it: if you forget it, your documents are gone.</p>
+          <label class="case">
+            <input type="checkbox" id="jai-note">
+            <span>I have written my code down somewhere safe</span>
+          </label>
+        </div>`
+      : ""
+  }
 
         <p class="erreur" id="erreur" role="alert" hidden></p>
-        <button type="submit" id="entrer" class="principal">Continue</button>
+        <button type="submit" id="entrer" class="principal large">
+          ${creation ? "Create my account" : "Continue"}
+        </button>
       </form>
     </section>`;
 
-  const form = vue.querySelector("#form-identite");
   const champEmail = vue.querySelector("#email");
   const champCode = vue.querySelector("#code");
+  const champCode2 = vue.querySelector("#code2");
+  const casse = vue.querySelector("#jai-note");
   const erreur = vue.querySelector("#erreur");
   const bouton = vue.querySelector("#entrer");
 
-  bouton.style.width = "100%";
-  bouton.style.marginTop = "18px";
-
-  vue.querySelector("#hasard").addEventListener("click", () => {
+  vue.querySelector("#retour")
+    .addEventListener("click", () => accueil(vue, ensuite));
+  vue.querySelector("#hasard")?.addEventListener("click", () => {
     champCode.value = codeAuHasard();
-    etatCode();
-    champCode.focus();
+    etat(champCode, verifierCode(champCode.value));
+    champCode2.value = "";
+    champCode2.focus();
   });
 
-  function dire(texte) {
-    erreur.textContent = texte;
-    erreur.hidden = !texte;
-  }
+  const dire = (t) => {
+    erreur.textContent = t;
+    erreur.hidden = !t;
+  };
 
-  // Validation en direct, la meme des deux cotes : le champ dit ou il en est
-  // sans qu'on ait a cliquer.
-  const estEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
-
-  function etatEmail(force = false) {
-    const v = champEmail.value.trim();
-    const boite = champEmail.closest(".champ");
-    if (!v) {
+  // La validation en direct : rien pendant la frappe, un avis a la sortie du
+  // champ, et l'erreur qui s'efface des qu'on repare.
+  function etat(el, bon, force = false) {
+    const boite = el.closest(".champ");
+    if (!el.value) {
       boite.dataset.etat = force ? "erreur" : "";
-      return false;
+      return;
     }
-    const bon = estEmail(v);
-    boite.dataset.etat = bon ? "valide" : (force || champEmail.dataset.touche ? "erreur" : "");
-    return bon;
+    boite.dataset.etat = bon ? "valide" : (force || el.dataset.touche ? "erreur" : "");
   }
 
-  function etatCode(force = false) {
-    const v = champCode.value;
-    const boite = champCode.closest(".champ");
-    if (!v) {
-      boite.dataset.etat = force ? "erreur" : "";
-      return false;
-    }
-    const bon = /^\d{4}$/.test(v) && !CODES_TRIVIAUX.includes(v);
-    boite.dataset.etat = bon ? "valide" : (force || champCode.dataset.touche ? "erreur" : "");
-    return bon;
+  const verifierEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim());
+  const verifierCode = (v) => /^\d{4}$/.test(v) && !CODES_TRIVIAUX.includes(v);
+
+  for (const [el, test] of [[champEmail, verifierEmail], [champCode, verifierCode]]) {
+    el.addEventListener("input", () => {
+      if (el === champCode) el.value = el.value.replace(/\D/g, "").slice(0, 4);
+      etat(el, test(el.value));
+      if (champCode2) etat(champCode2, champCode2.value === champCode.value);
+    });
+    el.addEventListener("blur", () => {
+      el.dataset.touche = "1";
+      etat(el, test(el.value));
+    });
   }
 
-  champEmail.addEventListener("blur", () => {
-    champEmail.dataset.touche = "1";
-    etatEmail();
+  champCode2?.addEventListener("input", () => {
+    champCode2.value = champCode2.value.replace(/\D/g, "").slice(0, 4);
+    etat(champCode2, champCode2.value === champCode.value);
   });
-  champEmail.addEventListener("input", () => etatEmail());
-
-  champCode.addEventListener("input", () => {
-    champCode.value = champCode.value.replace(/\D/g, "").slice(0, 4);
-    etatCode();
-  });
-  champCode.addEventListener("blur", () => {
-    champCode.dataset.touche = "1";
-    etatCode();
+  champCode2?.addEventListener("blur", () => {
+    champCode2.dataset.touche = "1";
+    etat(champCode2, champCode2.value === champCode.value);
   });
 
-  form.addEventListener("submit", async (evt) => {
+  vue.querySelector("#form-identite").addEventListener("submit", async (evt) => {
     evt.preventDefault();
     dire("");
 
     const email = champEmail.value.trim();
     const code = champCode.value;
 
-    if (!etatEmail(true)) {
+    if (!verifierEmail(email)) {
+      etat(champEmail, false, true);
       champEmail.focus();
       return dire("Enter a valid email address.");
     }
     if (!/^\d{4}$/.test(code)) {
-      etatCode(true);
+      etat(champCode, false, true);
       champCode.focus();
-      return dire("The code must be 4 digits.");
+      return dire("The code must be exactly 4 digits.");
     }
-    if (CODES_TRIVIAUX.includes(code)) {
-      etatCode(true);
-      champCode.focus();
-      return dire("That code is too easy to guess. Pick another one.");
+    if (creation) {
+      if (CODES_TRIVIAUX.includes(code)) {
+        etat(champCode, false, true);
+        champCode.focus();
+        return dire("That code is too easy to guess. Pick another one.");
+      }
+      if (champCode2.value !== code) {
+        etat(champCode2, false, true);
+        champCode2.focus();
+        return dire("The two codes do not match.");
+      }
+      if (!casse.checked) {
+        casse.closest(".avertissement").classList.add("secoue");
+        setTimeout(
+          () => casse.closest(".avertissement").classList.remove("secoue"),
+          400,
+        );
+        return dire("Please confirm you have written your code down.");
+      }
     }
 
     bouton.disabled = true;
-    bouton.textContent = "Checking…";
+    bouton.textContent = creation ? "Creating…" : "Checking…";
 
     // On enregistre avant l'appel pour obtenir un identifiant d'appareil
     // stable, puis on oublie si le serveur refuse.
     const provisoire = identite.enregistrer(email, code);
-    const r = await api.ouvrir(email, code, provisoire.appareil_id);
+    const r = await api.ouvrir(email, code, provisoire.appareil_id, mode);
 
     bouton.disabled = false;
-    bouton.textContent = "Continue";
+    bouton.textContent = creation ? "Create my account" : "Continue";
 
     if (!r.ok) {
       identite.oublier();
+      if (r.raison === "compte_existant") {
+        return dire("This email already has an account. Use « I already have one ».");
+      }
       if (r.raison === "bloque" && r.secondes) {
         const minutes = Math.ceil(r.secondes / 60);
         return dire(`Too many attempts. Try again in ${minutes} minute` +

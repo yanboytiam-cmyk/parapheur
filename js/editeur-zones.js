@@ -12,16 +12,16 @@ const MIN = 0.02;
 
 // Une couleur par famille de champ, pour s'y retrouver d'un coup d'oeil.
 const COULEURS = {
-  signature: "#2563eb",
-  date: "#0891b2",
-  nom_complet: "#16a34a",
-  prenom: "#16a34a",
-  nom: "#16a34a",
-  telephone: "#ea580c",
-  email: "#ea580c",
-  adresse: "#9333ea",
-  lieu: "#9333ea",
-  texte: "#64748b",
+  signature: "#2547e8",   // bleu roi
+  date: "#0891b2",        // cyan
+  nom_complet: "#0f9d76", // emeraude
+  prenom: "#0f9d76",
+  nom: "#0f9d76",
+  telephone: "#e8730c",   // ambre
+  email: "#d61f3e",       // carmin
+  adresse: "#9333ea",     // aubergine
+  lieu: "#5b3df5",        // outremer
+  texte: "#6b7194",       // graphite
 };
 
 export function couleurDe(type) {

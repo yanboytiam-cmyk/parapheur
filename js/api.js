@@ -19,8 +19,8 @@ async function poster(fn, corps) {
 }
 
 export const api = {
-  ouvrir: (email, code, appareil_id) =>
-    poster("ouvrir", { email, code, appareil_id }),
+  ouvrir: (email, code, appareil_id, mode) =>
+    poster("ouvrir", { email, code, appareil_id, mode }),
 
   creerDemande: (charge) => poster("creer-demande", charge),
 
@@ -41,7 +41,8 @@ export const api = {
 export const MESSAGES = {
   identifiants: "That email and code don't match. Please try again.",
   bloque: "Too many attempts. Please wait a moment and try again.",
-  code_trivial: "Please choose a less obvious code.",
+  code_trivial: "That code is too easy to guess. Pick another one.",
+  compte_existant: "This email already has an account. Sign in instead.",
   nom_manquant: "Please enter a name.",
   trop_gros: "That file is larger than 10 MB.",
   trop_de_pages: "That document has more than 30 pages.",

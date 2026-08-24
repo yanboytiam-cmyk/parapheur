@@ -12,42 +12,53 @@
    ========================================================================== */
 
 :root {
-  /* Encre de stylo plume, delavee par paliers. */
-  --encre: #14213d;
-  --encre-douce: #3d4f6d;
-  --gris: #6f6a5f;
-  --gris-clair: #9a9488;
+  /* Les encres. Chaque famille de champ porte la sienne, et ce sont elles qui
+     colorent tout l'ecran : boutons, halos, liserés, etats. */
+  --encre-roi: #2547e8;
+  --encre-roi-fonce: #1a34b8;
+  --encre-outremer: #5b3df5;
+  --encre-emeraude: #0f9d76;
+  --encre-ambre: #e8730c;
+  --encre-aubergine: #9333ea;
+  --encre-cyan: #0891b2;
+  --encre-carmin: #d61f3e;
 
-  /* Papier. Jamais de blanc pur : l'ecran fatigue moins, et un PDF pose
-     dessus se detache enfin. */
-  --papier: #f7f5f0;
-  --feuille: #fffefb;
-  --bord: #e2ddd1;
-  --bord-fort: #cec7b6;
+  /* Le fond, et les niveaux de gris qui portent le texte. */
+  --encre: #141a33;
+  --encre-douce: #3c456b;
+  --gris: #6b7194;
+  --gris-clair: #9ca2c0;
 
-  /* L'encre fraiche : la couleur de l'action, et d'elle seule. */
-  --action: #1d4ed8;
-  --action-sombre: #1739a8;
-  --action-voile: #e8edfb;
+  --papier: #f4f4fb;
+  --feuille: #ffffff;
+  --bord: #e3e4f2;
+  --bord-fort: #c9cbe4;
 
-  --vert: #17795e;
-  --ambre: #b45309;
-  --rouge: #b42318;
-  --rouge-voile: #fdf0ef;
+  /* L'action, en degrade : un aplat de bleu ne se distingue de rien. */
+  --action: var(--encre-roi);
+  --action-sombre: var(--encre-roi-fonce);
+  --action-voile: #e9edfe;
+  --degrade-action: linear-gradient(135deg, #2547e8 0%, #5b3df5 100%);
+  --degrade-chaud: linear-gradient(135deg, #e8730c 0%, #d61f3e 100%);
+  --degrade-vert: linear-gradient(135deg, #0f9d76 0%, #0891b2 100%);
 
-  --rayon: 12px;
-  --rayon-petit: 8px;
-  --ombre: 0 1px 2px rgba(20, 33, 61, .06), 0 8px 24px -12px rgba(20, 33, 61, .18);
-  --ombre-forte: 0 4px 12px rgba(20, 33, 61, .10), 0 24px 48px -20px rgba(20, 33, 61, .30);
+  --vert: var(--encre-emeraude);
+  --ambre: var(--encre-ambre);
+  --rouge: var(--encre-carmin);
+  --rouge-voile: #fdeef0;
+
+  --rayon: 16px;
+  --rayon-petit: 10px;
+  --ombre: 0 1px 2px rgba(20, 26, 51, .05), 0 10px 30px -14px rgba(20, 26, 51, .22);
+  --ombre-forte: 0 4px 14px rgba(20, 26, 51, .10), 0 30px 60px -24px rgba(37, 71, 232, .34);
+  --ombre-action: 0 4px 16px -4px rgba(37, 71, 232, .5);
 
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --transition: 160ms cubic-bezier(.2, .7, .3, 1);
-}
-
-* { box-sizing: border-box; }
+  --transition: 180ms cubic-bezier(.2, .7, .3, 1);
+}* { box-sizing: border-box; }
 
 /* Un display: flex plus bas ecraserait l'attribut hidden, dont le display:none
    par defaut vient de la feuille du navigateur. Sans cette ligne, un element
@@ -58,25 +69,26 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
+  min-height: 100vh;
   font: 400 16px/1.6 var(--sans);
   color: var(--encre);
   background: var(--papier);
   padding-bottom: env(safe-area-inset-bottom);
-  /* La trame du papier : deux hachures a peine visibles, qui donnent une
-     matiere sans jamais gener la lecture. */
+  /* Trois halos d'encre diffuses : le fond n'est plus une surface morte, mais
+     il reste assez pale pour qu'un PDF blanc pose dessus se detache. */
   background-image:
-    repeating-linear-gradient(90deg, rgba(20, 33, 61, .018) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(20, 33, 61, .018) 0 1px, transparent 1px 3px);
-}
-
-/* --- Entete -------------------------------------------------------------- */
+    radial-gradient(46rem 34rem at 8% -8%, rgba(37, 71, 232, .13), transparent 62%),
+    radial-gradient(38rem 30rem at 98% 4%, rgba(147, 51, 234, .11), transparent 60%),
+    radial-gradient(44rem 34rem at 60% 104%, rgba(15, 157, 118, .10), transparent 62%);
+  background-attachment: fixed;
+}/* --- Entete -------------------------------------------------------------- */
 
 #entete {
   display: flex;
   align-items: center;
   gap: 24px;
   padding: 16px 24px;
-  background: rgba(255, 254, 251, .88);
+  background: rgba(255, 255, 255, .82);
   backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid var(--bord);
   position: sticky;
@@ -109,7 +121,12 @@ body {
   font: 600 20px/1 var(--serif);
   font-variation-settings: "SOFT" 24, "WONK" 1;
   letter-spacing: -.018em;
+  background: var(--degrade-action);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
+.marque-signe { background: var(--degrade-action); }
 
 #entete nav { display: flex; gap: 4px; }
 #entete nav a {
@@ -154,12 +171,24 @@ body {
 main { max-width: 1240px; margin: 32px auto; padding: 0 24px; }
 
 .carte {
+  position: relative;
   background: var(--feuille);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
   padding: 28px;
   box-shadow: var(--ombre);
+  overflow: hidden;
   animation: entree 420ms cubic-bezier(.2, .7, .3, 1) both;
+}
+/* Le filet d'encre en tete de carte : trois couleurs, comme un nuancier. */
+.carte::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg,
+    var(--encre-roi) 0%, var(--encre-outremer) 34%,
+    var(--encre-aubergine) 58%, var(--encre-ambre) 80%, var(--encre-emeraude) 100%);
 }
 .carte.etroite { max-width: 460px; margin: 8vh auto 0; }
 
@@ -312,12 +341,19 @@ button, .bouton {
 button:active, .bouton:active { transform: translateY(1px); }
 
 .principal {
-  background: var(--action);
+  background: var(--degrade-action);
+  background-size: 160% 160%;
+  background-position: 0% 50%;
   color: #fff;
-  border-color: var(--action);
-  box-shadow: 0 1px 2px rgba(29, 78, 216, .3);
+  border-color: transparent;
+  box-shadow: var(--ombre-action);
+  transition: background-position 420ms cubic-bezier(.2, .7, .3, 1),
+              box-shadow var(--transition), transform var(--transition);
 }
-.principal:hover { background: var(--action-sombre); border-color: var(--action-sombre); }
+.principal:hover {
+  background-position: 100% 50%;
+  box-shadow: 0 6px 22px -4px rgba(37, 71, 232, .62);
+}
 .principal:disabled {
   opacity: .55;
   cursor: default;
@@ -878,4 +914,105 @@ footer {
   stroke-dasharray: 340;
   stroke-dashoffset: 340;
   animation: tracer 1300ms cubic-bezier(.35, .05, .2, 1) 150ms forwards;
+}
+
+/* --- L'accueil : ce que fait l'outil, avant de demander quoi que ce soit -- */
+
+.accueil-carte { max-width: 430px; }
+.accroche {
+  font: 400 16px/1.5 var(--sans);
+  color: var(--gris);
+  margin: 8px 0 0;
+}
+
+.promesses {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  display: grid;
+  gap: 12px;
+}
+.promesses li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 14.5px;
+  color: var(--encre-douce);
+  animation: entree 420ms cubic-bezier(.2, .7, .3, 1) both;
+}
+.promesses li:nth-child(1) { animation-delay: 120ms; }
+.promesses li:nth-child(2) { animation-delay: 200ms; }
+.promesses li:nth-child(3) { animation-delay: 280ms; }
+
+.puce-promesse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 7px;
+}
+.puce-1 { background: var(--degrade-action); }
+.puce-2 { background: var(--degrade-vert); }
+.puce-3 { background: var(--degrade-chaud); }
+
+.accueil-carte .secondaire { width: 100%; margin-top: 10px; }
+.aide.centre { text-align: center; margin: 16px 0 0; }
+
+.retour {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 0;
+  text-decoration: none;
+  font-size: 13.5px;
+}
+.retour:hover { text-decoration: underline; }
+
+/* --- L'avertissement sur le code ----------------------------------------- */
+
+.avertissement {
+  margin: 20px 0 4px;
+  padding: 16px 18px;
+  border-radius: var(--rayon-petit);
+  background: linear-gradient(135deg, #fff7ed 0%, #fef2f2 100%);
+  border: 1px solid #fbd5a5;
+}
+.avertissement strong {
+  display: block;
+  font-size: 14.5px;
+  color: #9a3412;
+  margin-bottom: 5px;
+}
+.avertissement p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #7c2d12;
+}
+.avertissement.secoue { animation: secousse 380ms cubic-bezier(.36,.07,.19,.97) both; }
+
+.case {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #7c2d12;
+  cursor: pointer;
+}
+.case input {
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--encre-ambre);
+  cursor: pointer;
+}
+
+/* Le code se saisit en gros, espace : quatre chiffres qui comptent. */
+.champ-code {
+  font: 600 22px/1 var(--mono) !important;
+  letter-spacing: .5em;
+  text-indent: .5em;
+  text-align: center;
 }
