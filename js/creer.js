@@ -113,21 +113,35 @@ export function afficher(vue) {
     }
   }
 
+  // Le resume dit ou on en est, et le bouton suit : on ne propose pas une
+  // action qui va echouer.
   function dessinerResume(zones) {
     const boite = vue.querySelector("#resume");
-    if (!zones.length) {
-      boite.innerHTML =
-        `<p class="aide">Nothing placed yet. A signature field is required.</p>`;
-      return;
-    }
+    const bouton = vue.querySelector("#creer");
+
     const parType = {};
     for (const z of zones) parType[z.type] = (parType[z.type] ?? 0) + 1;
-    const signe = parType.signature === 1;
-    boite.innerHTML = `<p class="aide">${
-      Object.entries(parType)
-        .map(([t, n]) => `${CHAMPS[t]?.libelle ?? t}${n > 1 ? ` ×${n}` : ""}`)
-        .join(" · ")
-    }${signe ? "" : "<br><strong>A signature field is still missing.</strong>"}</p>`;
+    const signatures = parType.signature ?? 0;
+
+    const liste = Object.entries(parType)
+      .map(([t, n]) => `${CHAMPS[t]?.libelle ?? t}${n > 1 ? ` ×${n}` : ""}`)
+      .join(" · ");
+
+    let etat = "";
+    if (signatures === 0) {
+      etat = `<strong class="manque">Place a signature field to continue.</strong>`;
+    } else if (signatures > 1) {
+      etat = `<strong class="manque">One signature per document. ` +
+        `Remove ${signatures - 1} of them.</strong>`;
+    }
+
+    boite.innerHTML = zones.length
+      ? `<p class="aide">${liste}</p>${etat}`
+      : `<p class="aide">Nothing placed yet. ${
+        `A signature field is required.`
+      }</p>`;
+
+    bouton.disabled = signatures !== 1;
   }
 
   champFichier.addEventListener("change", async () => {

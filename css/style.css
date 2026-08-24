@@ -389,6 +389,13 @@ button:active, .bouton:active { transform: translateY(1px); }
   border: 1px solid var(--bord);
 }
 .resume .aide { margin: 0; font-size: 13px; }
+.resume .manque {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ambre);
+}
 .colonne-outils .principal { width: 100%; }
 
 /* --- Le document et ses calques ------------------------------------------ */

@@ -115,8 +115,13 @@ export function editeur(calques, surChangement = () => {}) {
         return;
       }
 
-      // Zone neuve : un simple clic pose une taille standard, un glissement
-      // laisse l'utilisateur la dimensionner lui-meme.
+      // Un geste involontaire ne doit rien creer : ni le clic droit, ni un
+      // effleurement en passant, ni le relachement d'un glissement commence
+      // ailleurs. Un cadre pose par surprise se remarque tard, souvent apres
+      // l'envoi.
+      if (evt.button !== undefined && evt.button !== 0) return;
+      if (evt.pointerType === "mouse" && evt.buttons !== 1) return;
+
       evt.preventDefault();
       const page = Number(calque.dataset.page);
       const debut = fraction(calque, evt);
@@ -184,6 +189,8 @@ export function editeur(calques, surChangement = () => {}) {
     }
   };
   globalThis.addEventListener("keydown", annuler);
+
+  dessiner();
 
   return {
     zones: () => zones.map((z) => ({ ...z })),
