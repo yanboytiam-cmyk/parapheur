@@ -3,6 +3,20 @@ import { marquer, rendre } from "./pdf-vue.js";
 import { CHAMPS } from "./champs.js";
 import { couleurDe } from "./editeur-zones.js";
 import { marqueurHtml, surveiller, verifierTout } from "./validation.js";
+import { enregistrerPdf } from "./telechargement.js";
+
+// Un exemple par champ : la personne voit la forme attendue avant de se
+// tromper. C'est ce qui evite le plus d'allers-retours.
+const EXEMPLES = {
+  nom_complet: "Maria Santos",
+  prenom: "Maria",
+  nom: "Santos",
+  telephone: "+1 240 555 0148",
+  email: "maria@clinic.com",
+  adresse: "4800 Sheppard Pratt Blvd, Baltimore, MD 21204",
+  lieu: "Baltimore, Maryland",
+  texte: "Anything you want to add",
+};
 
 // L'ecran du signataire. Concu pour le doigt : c'est souvent sur un telephone
 // qu'on ouvre un lien recu par WhatsApp. Rien a installer, aucun compte.
@@ -76,11 +90,13 @@ function champHtml(champ, nomSuggere) {
     : "";
   const type = champ.clavier === "tel" ? "tel" : champ.clavier === "email" ? "email" : "text";
 
+  const exemple = EXEMPLES[champ.type] ?? "";
   const saisie = champ.multiligne
-    ? `<textarea ${attributs} rows="2"></textarea>`
+    ? `<textarea ${attributs} rows="2" placeholder="${exemple}"></textarea>`
     : `<input ${attributs} type="${type}" ` +
       `inputmode="${champ.clavier === "tel" ? "tel" : "text"}" ` +
-      `autocomplete="${autoCompletion(champ.type)}" value="${valeur}">`;
+      `autocomplete="${autoCompletion(champ.type)}" ` +
+      `placeholder="${exemple}" value="${valeur}">`;
 
   return `<div class="champ">
     <label for="champ-${champ.id}">${champ.libelle}${
@@ -249,14 +265,16 @@ function fenetreSignature(vue, d, jeton) {
     if (!r.ok) return dire(r.detail ?? message(r.raison));
 
     fermer();
-    telecharger(r.url_copie);
+    const fichier = await enregistrerPdf(r.url_copie, r.nom_fichier);
     vue.innerHTML = `
       <section class="carte etroite">
         ${TRAIT_SIGNATURE}
         <h2>Signed</h2>
-        <p class="aide">Your copy has been downloaded to this device. If the
-        download did not start, <a href="${r.url_copie}">get it here</a>. The
-        copy stays available for 15 minutes.</p>
+        <p class="aide">Saved to this device as
+        <strong class="nom-fichier">${fichier.nom}</strong>.</p>
+        <p class="aide">If nothing was saved,
+        <a href="${r.url_copie}" download="${fichier.nom}">download it again</a>.
+        The copy stays available for 15 minutes.</p>
       </section>`;
     document.querySelector(".barre-bas")?.remove();
   });
@@ -278,15 +296,4 @@ function rognerEnPng(toile, boite) {
   rogne.height = Math.max(1, Math.round(h));
   rogne.getContext("2d").drawImage(toile, x, y, w, h, 0, 0, rogne.width, rogne.height);
   return rogne.toDataURL("image/png").split(",")[1];
-}
-
-// Le nom du fichier vient du serveur, par l'en-tete Content-Disposition :
-// l'attribut download d'un lien est ignore d'un domaine a l'autre.
-function telecharger(url) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }

@@ -36,6 +36,15 @@ export async function rendre(conteneur, source) {
     calque.dataset.page = String(n - 1);
     enveloppe.appendChild(calque);
 
+    if (doc.numPages > 1) {
+      const numero = document.createElement("span");
+      numero.className = "numero-page";
+      numero.textContent = `${n} / ${doc.numPages}`;
+      enveloppe.appendChild(numero);
+    }
+
+    // Les feuilles se posent l'une apres l'autre plutot que d'un bloc.
+    enveloppe.style.animationDelay = `${Math.min(n - 1, 4) * 70}ms`;
     conteneur.appendChild(enveloppe);
     await page.render({ canvasContext: toile.getContext("2d"), viewport: vue })
       .promise;

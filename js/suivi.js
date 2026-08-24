@@ -1,6 +1,7 @@
 import { api, message } from "./api.js";
 import { identite } from "./identite.js";
 import { proposerNotifications } from "./push.js";
+import { enregistrerPdf } from "./telechargement.js";
 
 // L'ecran de suivi. La pastille sur un document complet est le filet de
 // securite : meme si aucune notification n'arrive, il voit en ouvrant l'app.
@@ -99,13 +100,14 @@ export async function afficher(vue) {
       return;
     }
 
-    telecharger(r2.url, `signed-${r2.titre}`);
+    const fichier = await enregistrerPdf(r2.url, r2.nom_fichier ?? r2.titre);
     bouton.textContent = "Download again";
     bouton.disabled = false;
-    bouton.onclick = () => telecharger(r2.url, `signed-${r2.titre}`);
+    bouton.onclick = () => enregistrerPdf(r2.url, r2.nom_fichier ?? r2.titre);
 
     const p = bouton.closest(".demande").querySelector(".compte-rebours");
     p.hidden = false;
+    p.dataset.nom = fichier.nom;
     compteARebours(p, r2.efface_dans_secondes);
   });
 }
@@ -122,17 +124,13 @@ function compteARebours(el, secondes) {
     }
     const m = Math.floor(reste / 60);
     const s = String(reste % 60).padStart(2, "0");
-    el.textContent = `This copy will be deleted in ${m}:${s}. Save it now.`;
+    el.innerHTML =
+      `<span class="minuteur">${m}:${s}</span>` +
+      `<span>Saved as <strong>${el.dataset.nom ?? "the signed PDF"}</strong>. ` +
+      `The server copy is deleted when this reaches zero.</span>`;
     setTimeout(tic, 1000);
   };
   tic();
 }
 
-function telecharger(url, nom) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nom;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
+
