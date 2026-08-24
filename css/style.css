@@ -1067,3 +1067,24 @@ body.en-glissement .calque { cursor: grabbing; }
 @keyframes partir {
   to { opacity: 0; transform: scale(.88); }
 }
+
+/* --- Le chargement du document -------------------------------------------- */
+
+.chargement {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 4px;
+  color: var(--gris);
+  font-size: 14px;
+}
+.rondelle {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--bord);
+  border-top-color: var(--encre-roi);
+  animation: tourner 800ms linear infinite;
+}
+@keyframes tourner { to { transform: rotate(360deg); } }

@@ -13,7 +13,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 const ECHELLE = 1.5; // net a l'ecran sans saturer la memoire d'un telephone
 
-export async function rendre(conteneur, source) {
+// Le moteur PDF pese 1,4 Mo. Sur une connexion lente il met du temps, et la
+// personne doit voir que quelque chose se passe.
+function annoncerChargement(conteneur, texte) {
+  let el = conteneur.querySelector(".chargement");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "chargement";
+    el.innerHTML = `<span class="rondelle"></span><span class="chargement-texte"></span>`;
+    conteneur.appendChild(el);
+  }
+  el.querySelector(".chargement-texte").textContent = texte;
+  return el;
+}
+
+export async function rendre(conteneur, source, surAvancement = () => {}) {
   // Un PDF de production n'est jamais aussi propre qu'un PDF de test : polices
   // absentes, structure abimee, protection en lecture seule. pdf.js sait
   // presque toujours l'afficher quand meme, a condition de ne pas le lui
@@ -30,7 +44,36 @@ export async function rendre(conteneur, source) {
     isEvalSupported: false,
   });
 
-  const doc = await tache.promise;
+  const attente = annoncerChargement(conteneur, "Loading the document…");
+
+  // Un document qui n'arrive pas doit le dire : sans cela, l'ecran annonce un
+  // PDF illisible alors que c'est le reseau qui a lache.
+  tache.onProgress = ({ loaded, total }) => {
+    if (!total) return;
+    const part = Math.round((loaded / total) * 100);
+    annoncerChargement(conteneur, `Loading the document… ${part}%`);
+    surAvancement(part);
+  };
+
+  let doc;
+  try {
+    doc = await tache.promise;
+  } catch (souci) {
+    attente.remove();
+    // On distingue le reseau du document : ce n'est pas le meme probleme, et
+    // ce n'est pas la meme chose a faire.
+    const nom = String(souci?.name ?? "");
+    if (nom === "MissingPDFException" || nom === "UnexpectedResponseException") {
+      throw Object.assign(new Error("reseau"), { cause: "reseau" });
+    }
+    if (nom === "PasswordException") {
+      throw Object.assign(new Error("protege"), { cause: "protege" });
+    }
+    throw Object.assign(new Error(String(souci?.message ?? souci)), {
+      cause: "document",
+    });
+  }
+  attente.remove();
   const calques = [];
 
   for (let n = 1; n <= doc.numPages; n++) {

@@ -67,19 +67,63 @@ export async function afficher(vue, jeton) {
     </div>`;
 
   const zoneDoc = vue.querySelector("#document");
+  const boutonSigner = vue.querySelector("#signer");
+  boutonSigner.disabled = true;
+
   try {
     const calques = await rendre(zoneDoc, d.url_pdf);
     for (const z of d.zones ?? []) {
       marquer(calques[z.page], z, couleurDe(z.type), CHAMPS[z.type]?.libelle ?? z.type);
     }
-  } catch {
-    return annonce(vue, "Cannot display this document", message("pas_un_pdf"));
+    boutonSigner.disabled = false;
+  } catch (souci) {
+    console.error("apercu impossible :", souci);
+    return echecApercu(vue, d, jeton, souci?.cause ?? "document");
   }
 
   vue.querySelector("#signer").addEventListener(
     "click",
     () => fenetreSignature(vue, d, jeton),
   );
+}
+
+// Le document n'a pas pu s'afficher. On dit lequel des deux problemes c'est,
+// et on laisse une porte de sortie : reessayer, ou lire le PDF a part.
+function echecApercu(vue, d, jeton, cause) {
+  const textes = {
+    reseau: {
+      titre: "The document did not load",
+      aide: "Your connection dropped while the document was loading. This " +
+        "happens on a slow network. Try again, it usually works the second time.",
+    },
+    protege: {
+      titre: "This document is password-protected",
+      aide: "Parapheur cannot open a locked PDF. Ask the person who sent it " +
+        "to remove the password and send the link again.",
+    },
+    document: {
+      titre: "This document could not be displayed",
+      aide: "You can still open it in a new tab to read it, then come back " +
+        "here to sign.",
+    },
+  };
+  const t = textes[cause] ?? textes.document;
+
+  vue.innerHTML = `
+    <section class="carte etroite">
+      <h2>${t.titre}</h2>
+      <p class="aide">${t.aide}</p>
+      <div class="rangee">
+        <button type="button" id="reessayer" class="principal">Try again</button>
+        <a class="secondaire bouton" href="${d.url_pdf}" target="_blank"
+           rel="noopener">Open the PDF</a>
+      </div>
+    </section>`;
+  document.querySelector(".barre-bas")?.remove();
+
+  vue.querySelector("#reessayer").addEventListener("click", () => {
+    afficher(vue, jeton);
+  });
 }
 
 function champHtml(champ, nomSuggere) {

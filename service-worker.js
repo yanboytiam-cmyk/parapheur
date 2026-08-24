@@ -1,18 +1,42 @@
-// Deux roles : recevoir les notifications, et empecher le cache de mentir.
+// Deux roles : garder les bibliotheques sous la main, et empecher le cache de
+// mentir sur notre propre code.
 //
 // GitHub Pages sert ses fichiers avec `Cache-Control: max-age=600` et ne
 // permet pas de changer cet en-tete. Sans ce qui suit, un correctif deploye
-// reste invisible dix minutes : l'utilisateur voit l'ancienne version, signale
-// que « rien n'a change », et on cherche un bug qui n'existe plus.
+// reste invisible dix minutes.
 //
-// Le service worker rejoue donc chaque requete de code en ignorant le cache
-// HTTP. Aucune mise en cache de notre cote : l'app est petite, et une version
-// juste vaut mieux qu'une version rapide.
+// Mais tout recharger etait pire : le moteur PDF pese 1,4 Mo, et le forcer a
+// se retelecharger a chaque ouverture de page rend l'outil inutilisable sur une
+// connexion lente. Le document ne s'affichait pas, et l'ecran annoncait un PDF
+// illisible alors que seul le telechargement de la bibliotheque avait echoue.
+//
+// D'ou deux regimes : les bibliotheques figees sont gardees pour de bon, notre
+// code est toujours redemande.
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (evt) => evt.waitUntil(self.clients.claim()));
+const CACHE = "parapheur-vendor-1";
+const FIGE = /\/vendor\//;
+const NOTRE_CODE = /\.(js|mjs|css|html|webmanifest)$/;
 
-const CODE = /\.(js|mjs|css|html|webmanifest)$/;
+self.addEventListener("install", (evt) => {
+  // On prend les bibliotheques d'avance : la premiere signature n'attend pas.
+  evt.waitUntil(
+    caches.open(CACHE)
+      .then((c) =>
+        c.addAll(["vendor/pdf.min.mjs", "vendor/pdf.worker.min.mjs"])
+      )
+      .catch(() => {/* hors ligne a l'installation : on prendra plus tard */})
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener("activate", (evt) => {
+  evt.waitUntil((async () => {
+    for (const nom of await caches.keys()) {
+      if (nom !== CACHE) await caches.delete(nom);
+    }
+    await self.clients.claim();
+  })());
+});
 
 self.addEventListener("fetch", (evt) => {
   const req = evt.request;
@@ -21,13 +45,27 @@ self.addEventListener("fetch", (evt) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  const estCode = CODE.test(url.pathname) || url.pathname.endsWith("/");
-  if (!estCode) return;
+  // Les bibliotheques ne changent jamais : on les sert du cache, et on ne les
+  // retelecharge que si elles n'y sont pas.
+  if (FIGE.test(url.pathname)) {
+    evt.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const garde = await cache.match(req, { ignoreSearch: true });
+      if (garde) return garde;
+      const frais = await fetch(req);
+      if (frais.ok) cache.put(req, frais.clone());
+      return frais;
+    })());
+    return;
+  }
 
-  evt.respondWith(
-    // `cache: reload` court-circuite le cache HTTP du navigateur.
-    fetch(req, { cache: "reload" }).catch(() => fetch(req)),
-  );
+  // Notre code : toujours la derniere version, avec repli sur le cache HTTP
+  // si le reseau refuse.
+  if (NOTRE_CODE.test(url.pathname) || url.pathname.endsWith("/")) {
+    evt.respondWith(
+      fetch(req, { cache: "reload" }).catch(() => fetch(req)),
+    );
+  }
 });
 
 self.addEventListener("push", (evt) => {

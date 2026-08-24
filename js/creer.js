@@ -176,13 +176,14 @@ export function afficher(vue) {
       atelier.hidden = true;
       vue.querySelector("#depot").hidden = false;
       console.error("apercu impossible :", souci);
-      const nom = String(souci?.name ?? "");
-      dire(
-        nom === "PasswordException"
-          ? "This PDF is password-protected. Remove the password and try again."
-          : "This PDF could not be opened. If it opens elsewhere, tell Yanis: " +
-            (souci?.message ?? "unknown error").slice(0, 120),
-      );
+      dire({
+        reseau: "The document viewer did not load. Check your connection and " +
+          "try again, it usually works the second time.",
+        protege: "This PDF is password-protected. Remove the password and " +
+          "try again.",
+      }[souci?.cause] ??
+        "This PDF could not be opened: " +
+          String(souci?.message ?? "unknown error").slice(0, 120));
     }
   });
 
