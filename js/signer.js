@@ -4,6 +4,7 @@ import { CHAMPS } from "./champs.js";
 import { couleurDe } from "./editeur-zones.js";
 import { marqueurHtml, surveiller, verifierTout } from "./validation.js";
 import { enregistrerPdf } from "./telechargement.js";
+import { CHEMIN_PARAPHE } from "./marque.js";
 
 // Un exemple par champ : la personne voit la forme attendue avant de se
 // tromper. C'est ce qui evite le plus d'allers-retours.
@@ -25,8 +26,8 @@ const EXEMPLES = {
 // faire, rejoue une fois.
 const TRAIT_SIGNATURE = `
   <div class="acte">
-    <svg viewBox="0 0 160 56" aria-hidden="true">
-      <path d="M8 42c14-2 20-30 27-30s2 26 9 27 12-22 19-22 3 20 10 20 13-15 20-15 8 9 15 9 12-6 18-14"/>
+    <svg viewBox="0 0 110 100" aria-hidden="true">
+      <path d="${CHEMIN_PARAPHE}"/>
     </svg>
   </div>`;
 
@@ -265,21 +266,47 @@ function fenetreSignature(vue, d, jeton) {
     if (!r.ok) return dire(r.detail ?? message(r.raison));
 
     fermer();
-    const fichier = await enregistrerPdf(r.url_copie, r.nom_fichier);
-    vue.innerHTML = `
-      <section class="carte etroite">
-        ${TRAIT_SIGNATURE}
-        <h2>Signed</h2>
-        <p class="aide">Saved to this device as
-        <strong class="nom-fichier">${fichier.nom}</strong>.</p>
-        <p class="aide">If nothing was saved,
-        <a href="${r.url_copie}" download="${fichier.nom}">download it again</a>.
-        The copy stays available for 15 minutes.</p>
-      </section>`;
-    document.querySelector(".barre-bas")?.remove();
+    afficherFini(vue, r);
   });
 
   fenetre.querySelector("input, textarea")?.focus();
+}
+
+// L'ecran final. Le telechargement part d'un clic, jamais tout seul : un
+// navigateur bloque volontiers un enregistrement qu'il n'a pas demande, et un
+// fichier arrive sans prevenir se perd dans le dossier des telechargements.
+function afficherFini(vue, r) {
+  vue.innerHTML = `
+    <section class="carte etroite">
+      ${TRAIT_SIGNATURE}
+      <h2>Signed</h2>
+      <p class="aide">Your copy is ready. It stays available for 15 minutes.</p>
+      <div class="fichier-pret">
+        <span class="fichier-icone" aria-hidden="true">PDF</span>
+        <span class="nom-fichier">${r.nom_fichier}</span>
+      </div>
+      <button type="button" id="garder" class="principal large">
+        Save the signed PDF
+      </button>
+      <p class="aide" id="etat-fichier"></p>
+    </section>`;
+  document.querySelector(".barre-bas")?.remove();
+
+  const bouton = vue.querySelector("#garder");
+  const etat = vue.querySelector("#etat-fichier");
+
+  bouton.addEventListener("click", async () => {
+    bouton.disabled = true;
+    bouton.textContent = "Saving…";
+    const fichier = await enregistrerPdf(r.url_copie, r.nom_fichier);
+    bouton.disabled = false;
+    bouton.textContent = "Save again";
+    etat.textContent = fichier.ok
+      ? `Saved as ${fichier.nom}. Check your downloads folder.`
+      : `Your browser handled the download itself. Look for ${fichier.nom}.`;
+  });
+
+  bouton.focus();
 }
 
 // Un fond blanc masquerait le texte du document sous la signature : le PNG doit

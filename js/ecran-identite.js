@@ -1,6 +1,7 @@
 import { api, message } from "./api.js";
 import { identite } from "./identite.js";
 import { CODES_TRIVIAUX } from "./champs.js";
+import { CHEMIN_PARAPHE } from "./marque.js";
 
 // Le premier lancement sur un appareil. Deux champs, aucun autre, et il ne les
 // reverra plus ici.
@@ -18,9 +19,15 @@ function codeAuHasard() {
 export function afficher(vue, ensuite) {
   vue.innerHTML = `
     <section class="carte etroite">
-      <h2>Sign in</h2>
-      <p class="aide">Your email and a 4-digit code you choose. No account, no
-      password. We will not ask again on this device.</p>
+      <div class="accueil">
+        <svg class="accueil-signe" viewBox="0 0 110 100" aria-hidden="true">
+          <path d="${CHEMIN_PARAPHE}"/>
+        </svg>
+        <h2>Parapheur</h2>
+        <p class="aide">Send a PDF to be signed. No accounts, nothing kept.</p>
+      </div>
+      <p class="aide">Your email and a 4-digit code you choose. We will not ask
+      again on this device.</p>
 
       <form id="form-identite" novalidate>
         <div class="champ">

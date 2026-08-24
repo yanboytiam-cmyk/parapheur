@@ -85,22 +85,30 @@ body {
 }
 
 .marque {
-  font: 600 21px/1 var(--serif);
-  font-variation-settings: "SOFT" 20, "WONK" 1;
-  letter-spacing: -.015em;
-  color: var(--encre);
-  text-decoration: none;
   display: inline-flex;
-  align-items: baseline;
-  gap: 9px;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: var(--encre);
 }
-/* Le trait d'encre sous la marque : le geste, reduit a sa trace. */
-.marque::after {
-  content: "";
+
+/* Le paraphe : le P trace d'un seul geste, qui sert aussi de favicon et
+   d'icone d'application. Une seule forme pour toute la marque. */
+.marque-signe {
   width: 26px;
-  height: 7px;
-  background: no-repeat center/contain
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'%3E%3Cpath d='M1 7C6 2 9 8 14 5s7-4 11-1 8 3 13-2' fill='none' stroke='%231d4ed8' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  height: 26px;
+  flex: none;
+  background: var(--action);
+  -webkit-mask: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 100'%3E%3Cpath d='M26%2092%20C24%2064%2028%2034%2034%2014%20C48%204%2072%2010%2072%2030%20C72%2048%2054%2054%2036%2051%20C33%2068%2031%2080%2030%2091%20C50%2084%2074%2082%2098%2087' fill='none' stroke='%231d4ed8' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 100'%3E%3Cpath d='M26%2092%20C24%2064%2028%2034%2034%2014%20C48%204%2072%2010%2072%2030%20C72%2048%2054%2054%2036%2051%20C33%2068%2031%2080%2030%2091%20C50%2084%2074%2082%2098%2087' fill='none' stroke='%231d4ed8' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  transition: transform 320ms cubic-bezier(.2, 1.3, .3, 1);
+}
+.marque:hover .marque-signe { transform: rotate(-6deg) scale(1.08); }
+
+.marque-nom {
+  font: 600 20px/1 var(--serif);
+  font-variation-settings: "SOFT" 24, "WONK" 1;
+  letter-spacing: -.018em;
 }
 
 #entete nav { display: flex; gap: 4px; }
@@ -120,6 +128,26 @@ body {
   font: 400 12.5px/1 var(--mono);
   letter-spacing: -.02em;
 }
+
+/* --- L'accueil : le paraphe se dessine ----------------------------------- */
+
+.accueil { text-align: center; padding: 6px 0 2px; }
+.accueil-signe {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 14px;
+}
+.accueil-signe path {
+  fill: none;
+  stroke: var(--action);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 340;
+  stroke-dashoffset: 340;
+  animation: tracer 1400ms cubic-bezier(.35, .05, .2, 1) 180ms forwards;
+}
+@keyframes tracer { to { stroke-dashoffset: 0; } }
 
 /* --- Ossature ------------------------------------------------------------ */
 
@@ -788,21 +816,6 @@ button:active, .bouton:active { transform: translateY(1px); }
 }
 .pied-fenetre button { flex: 1; }
 
-/* --- L'ecran final : le trait qui se dessine ----------------------------- */
-
-.acte { text-align: center; padding: 16px 0 4px; }
-.acte svg { width: 148px; height: 52px; }
-.acte path {
-  fill: none;
-  stroke: var(--action);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-dasharray: 240;
-  stroke-dashoffset: 240;
-  animation: signer 1100ms cubic-bezier(.4, .1, .3, 1) 140ms forwards;
-}
-@keyframes signer { to { stroke-dashoffset: 0; } }
-
 footer {
   max-width: 1240px;
   margin: 40px auto;
@@ -820,5 +833,49 @@ footer {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-  .acte path { stroke-dashoffset: 0; }
+  .acte path, .accueil-signe path { stroke-dashoffset: 0; }
+}
+
+/* --- Le fichier pret ------------------------------------------------------ */
+
+.fichier-pret {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 18px 0 16px;
+  background: var(--papier);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon-petit);
+  animation: entree 320ms ease 120ms both;
+}
+.fichier-icone {
+  flex: none;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .06em;
+  color: #fff;
+  background: var(--rouge);
+  padding: 7px 8px;
+  border-radius: 4px;
+}
+.nom-fichier {
+  font: 400 13px/1.4 var(--mono);
+  color: var(--encre-douce);
+  word-break: break-all;
+}
+
+.principal.large { width: 100%; padding: 15px; font-size: 16px; }
+
+/* Le paraphe de l'ecran final, plus grand que celui de l'entete. */
+.acte { text-align: center; padding: 8px 0 4px; }
+.acte svg { width: 78px; height: 72px; }
+.acte path {
+  fill: none;
+  stroke: var(--action);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 340;
+  stroke-dashoffset: 340;
+  animation: tracer 1300ms cubic-bezier(.35, .05, .2, 1) 150ms forwards;
 }

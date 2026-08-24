@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200"
+  height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="trame" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="#f7f5f0"/>
+      <rect width="1" height="4" fill="#14213d" opacity=".025"/>
+      <rect width="4" height="1" fill="#14213d" opacity=".025"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#trame)"/>
+
+  <g transform="translate(150 168)">
+    <path d="M26 92 C24 64 28 34 34 14 C48 4 72 10 72 30 C72 48 54 54 36 51 C33 68 31 80 30 91 C50 84 74 82 98 87" fill="none" stroke="#1d4ed8" stroke-width="10"
+      stroke-linecap="round" stroke-linejoin="round" transform="scale(1.5)"/>
+  </g>
+
+  <text x="150" y="430" font-family="Georgia, serif" font-size="82"
+    font-weight="600" fill="#14213d">Parapheur</text>
+  <text x="150" y="486" font-family="system-ui, sans-serif" font-size="28"
+    fill="#6f6a5f">Send a PDF to be signed. No accounts, nothing kept.</text>
+
+  <line x1="150" y1="530" x2="290" y2="530" stroke="#14213d" stroke-width="2"
+    opacity=".25"/>
+  <text x="150" y="566" font-family="ui-monospace, monospace" font-size="20"
+    fill="#9a9488">Free · Deleted after signing</text>
+</svg>

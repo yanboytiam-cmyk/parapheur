@@ -3,18 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Parapheur</title>
-  <meta name="description" content="Send a PDF to be signed, without accounts.">
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0f172a">
+  <title>Parapheur — send a PDF to be signed</title>
+  <meta name="description" content="Send a PDF to be signed. No accounts, nothing kept.">
+
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#14213d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Parapheur">
+
+  <meta property="og:title" content="Parapheur">
+  <meta property="og:description" content="Send a PDF to be signed. No accounts, nothing kept.">
+  <meta property="og:image" content="icons/banniere.svg">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header id="entete">
-    <a class="marque" href="#/">Parapheur</a>
+    <a class="marque" href="#/" aria-label="Parapheur">
+      <span class="marque-signe" aria-hidden="true"></span>
+      <span class="marque-nom">Parapheur</span>
+    </a>
     <nav id="nav" hidden>
       <a href="#/">New</a>
       <a href="#/suivi">Documents</a>
@@ -23,12 +38,12 @@
   </header>
 
   <main id="vue" aria-live="polite">
-    <section class="carte"><p class="aide">Loading…</p></section>
+    <section class="carte etroite"><p class="aide">Loading…</p></section>
   </main>
 
   <footer>
-    <p>Documents are deleted 15 minutes after you download them, and after 7
-    days if nobody signs. Nothing is kept.</p>
+    <p>Signed documents are deleted 15 minutes after you download them, and
+    after 7 days if nobody signs. Parapheur keeps nothing and sends no email.</p>
   </footer>
 
   <script type="module" src="js/app.js"></script>
