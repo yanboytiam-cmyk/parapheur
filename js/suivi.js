@@ -6,11 +6,18 @@ import { proposerNotifications } from "./push.js";
 // securite : meme si aucune notification n'arrive, il voit en ouvrant l'app.
 
 function etatLisible(d) {
-  const signes = d.signataires.filter((s) => s.signe_le).length;
-  const total = d.signataires.length;
+  const qui = d.signataires?.[0];
   if (d.etat === "telecharge") return { texte: "Downloaded", classe: "gris" };
-  if (d.etat === "complete") return { texte: "Ready to download", classe: "vert" };
-  return { texte: `Signed by ${signes} of ${total}`, classe: "orange" };
+  if (d.etat === "complete") {
+    return {
+      texte: `Signed by ${qui?.nom_saisi ?? qui?.nom_attendu ?? "them"}`,
+      classe: "vert",
+    };
+  }
+  return {
+    texte: `Waiting for ${qui?.nom_attendu ?? "signature"}`,
+    classe: "orange",
+  };
 }
 
 function joursRestants(expire) {
@@ -64,16 +71,6 @@ export async function afficher(vue) {
         <strong>${d.titre}</strong>
       </div>
       <div class="demande-etat ${etat.classe}">${etat.texte}</div>
-      <ul class="signataires-etat">
-        ${
-      d.signataires
-        .sort((a, b) => a.rang - b.rang)
-        .map((s) =>
-          `<li>${s.signe_le ? "✓" : "•"} ${s.nom_saisi ?? s.nom_attendu}</li>`
-        )
-        .join("")
-    }
-      </ul>
       <div class="demande-pied">
         <span class="aide">${joursRestants(d.expire_le)}</span>
         ${

@@ -1,15 +1,16 @@
 import { api, message } from "./api.js";
 import { marquer, rendre } from "./pdf-vue.js";
+import { CHAMPS, verifierValeur } from "./champs.js";
+import { couleurDe } from "./editeur-zones.js";
 
 // L'ecran du signataire. Concu pour le doigt : c'est souvent sur un telephone
 // qu'on ouvre un lien recu par WhatsApp. Rien a installer, aucun compte.
-
-const ETIQUETTES = { signature: "Signature", nom: "Name", date: "Date" };
 
 function annonce(vue, titre, texte) {
   vue.innerHTML =
     `<section class="carte etroite"><h2>${titre}</h2>` +
     `<p class="aide">${texte}</p></section>`;
+  document.querySelector(".barre-bas")?.remove();
 }
 
 export async function afficher(vue, jeton) {
@@ -30,8 +31,8 @@ export async function afficher(vue, jeton) {
   vue.innerHTML = `
     <section class="carte">
       <h2>${d.titre}</h2>
-      <p class="aide">Please read the document. The highlighted boxes are where
-      your name, signature and date will go.</p>
+      <p class="aide">Please read the document. The highlighted boxes are what
+      you will be asked to fill in.</p>
       <div id="document" class="document lecture"></div>
     </section>
     <div class="barre-bas">
@@ -41,8 +42,13 @@ export async function afficher(vue, jeton) {
   const zoneDoc = vue.querySelector("#document");
   try {
     const calques = await rendre(zoneDoc, d.url_pdf);
-    for (const z of d.zones) {
-      marquer(calques[z.page], z, d.couleur, ETIQUETTES[z.type] ?? z.type);
+    for (const z of d.zones ?? []) {
+      marquer(
+        calques[z.page],
+        z,
+        couleurDe(z.type),
+        CHAMPS[z.type]?.libelle ?? z.type,
+      );
     }
   } catch {
     return annonce(vue, "Cannot display this document", message("pas_un_pdf"));
@@ -54,15 +60,54 @@ export async function afficher(vue, jeton) {
   );
 }
 
+function champHtml(champ, nomSuggere) {
+  const commun =
+    `id="champ-${champ.id}" data-id="${champ.id}" data-type="${champ.type}"`;
+  // Le nom que le createur a saisi prerempli le premier champ de nom.
+  const valeur = ["nom_complet", "prenom", "nom"].includes(champ.type)
+    ? nomSuggere
+    : "";
+
+  const saisie = champ.multiligne
+    ? `<textarea ${commun} rows="2"></textarea>`
+    : `<input ${commun} type="${
+      champ.clavier === "tel" ? "tel" : champ.clavier === "email" ? "email" : "text"
+    }" inputmode="${champ.clavier === "tel" ? "tel" : "text"}" ` +
+      `autocomplete="${autoCompletion(champ.type)}" value="${valeur}">`;
+
+  return `<label for="champ-${champ.id}">${champ.libelle}${
+    champ.obligatoire ? "" : " <span class=\"aide\">(optional)</span>"
+  }</label>${saisie}`;
+}
+
+function autoCompletion(type) {
+  return {
+    nom_complet: "name",
+    prenom: "given-name",
+    nom: "family-name",
+    telephone: "tel",
+    email: "email",
+    adresse: "street-address",
+  }[type] ?? "off";
+}
+
 function fenetreSignature(vue, d, jeton) {
+  const champs = d.champs ?? [];
+  const maintenant = new Date().toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   const fenetre = document.createElement("div");
   fenetre.className = "fenetre";
   fenetre.innerHTML = `
     <div class="fenetre-carte" role="dialog" aria-modal="true" aria-label="Sign">
       <h3>Sign the document</h3>
 
-      <label for="nom">Your full name</label>
-      <input id="nom" type="text" autocomplete="name" value="${d.nom_attendu}">
+      ${champs.map((c) => champHtml(c, d.nom_attendu ?? "")).join("")}
 
       <label for="trace">Draw your signature</label>
       <div class="cadre-trace">
@@ -70,16 +115,8 @@ function fenetreSignature(vue, d, jeton) {
       </div>
       <button type="button" id="effacer" class="secondaire">Clear</button>
 
-      <label>Date</label>
-      <input id="date" type="text" readonly value="${
-    new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }">
+      <label for="date">Date</label>
+      <input id="date" type="text" readonly value="${maintenant}">
 
       <p class="erreur" id="erreur-signature" role="alert" hidden></p>
       <div class="rangee">
@@ -119,7 +156,7 @@ function fenetreSignature(vue, d, jeton) {
 
   toile.addEventListener("pointerdown", (evt) => {
     evt.preventDefault();
-    toile.setPointerCapture(evt.pointerId);
+    toile.setPointerCapture?.(evt.pointerId);
     const p = point(evt);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
@@ -156,19 +193,32 @@ function fenetreSignature(vue, d, jeton) {
 
   fenetre.querySelector("#valider").addEventListener("click", async () => {
     dire("");
-    const nom = fenetre.querySelector("#nom").value.trim();
-    if (nom.length < 2) return dire("Please enter your full name.");
+
+    // On verifie ici avec les memes regles que le serveur : la personne corrige
+    // tout de suite, sans aller-retour.
+    const valeurs = {};
+    for (const c of champs) {
+      const el = fenetre.querySelector(`#champ-${c.id}`);
+      const valeur = (el?.value ?? "").trim();
+      const souci = verifierValeur(c.type, valeur);
+      if (souci) {
+        el?.focus();
+        return dire(souci);
+      }
+      valeurs[c.id] = valeur;
+    }
+
     if (!dessine || !boite) return dire("Please draw your signature.");
 
     const bouton = fenetre.querySelector("#valider");
     bouton.disabled = true;
     bouton.textContent = "Signing…";
 
-    const r = await api.signer(jeton, nom, rognerEnPng(toile, boite));
+    const r = await api.signer(jeton, valeurs, rognerEnPng(toile, boite));
 
     bouton.disabled = false;
     bouton.textContent = "Sign";
-    if (!r.ok) return dire(message(r.raison));
+    if (!r.ok) return dire(r.detail ?? message(r.raison));
 
     fenetre.remove();
     telecharger(r.url_copie, `signed-${d.titre}`);
@@ -182,7 +232,7 @@ function fenetreSignature(vue, d, jeton) {
     document.querySelector(".barre-bas")?.remove();
   });
 
-  fenetre.querySelector("#nom").focus();
+  fenetre.querySelector("input, textarea")?.focus();
 }
 
 // Un fond blanc masquerait le texte du document sous la signature : le PNG doit

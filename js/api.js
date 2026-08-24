@@ -26,8 +26,8 @@ export const api = {
 
   voirDemande: (jeton) => poster("voir-demande", { jeton }),
 
-  signer: (jeton, nom, signature_png_base64) =>
-    poster("signer", { jeton, nom, signature_png_base64 }),
+  signer: (jeton, valeurs, signature_png_base64) =>
+    poster("signer", { jeton, valeurs, signature_png_base64 }),
 
   telecharger: (email, code, demande_id) =>
     poster("telecharger", { email, code, demande_id }),
@@ -46,8 +46,11 @@ export const MESSAGES = {
   trop_gros: "That file is larger than 10 MB.",
   trop_de_pages: "That document has more than 30 pages.",
   pas_un_pdf: "That file is not a PDF we can read.",
-  trop_de_signataires: "You can add up to 5 signers.",
-  signature_manquante: "Each signer needs at least one signature box.",
+  signature_manquante: "Please place a Signature field on the document.",
+  signature_unique: "Only one signature per document.",
+  trop_de_zones: "Please place between 1 and 30 fields.",
+  champ_inconnu: "One of the fields is not recognised.",
+  champ_invalide: "Please check what you entered.",
   zone_hors_page: "One of the boxes falls outside the page.",
   plafond_journalier: "You have reached today's limit of 5 documents.",
   deja_signe: "This document has already been signed.",

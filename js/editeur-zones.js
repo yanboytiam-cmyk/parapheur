@@ -1,23 +1,37 @@
+import { CHAMPS } from "./champs.js";
+
 // Le placement des zones sur le document.
 //
-// Concu pour la souris, qui est l'usage principal : tracer un rectangle au
+// Concu pour la souris, qui est l'usage principal : poser un champ au
 // millimetre se fait sur grand ecran. Utilisable au doigt sans code separe,
 // grace aux Pointer Events qui couvrent les deux.
 //
 // Toutes les coordonnees sont des fractions de la page, jamais des pixels.
 
-const TAILLES = {
-  signature: [0.30, 0.08],
-  nom: [0.25, 0.045],
-  date: [0.20, 0.045],
+const MIN = 0.02;
+
+// Une couleur par famille de champ, pour s'y retrouver d'un coup d'oeil.
+const COULEURS = {
+  signature: "#2563eb",
+  date: "#0891b2",
+  nom_complet: "#16a34a",
+  prenom: "#16a34a",
+  nom: "#16a34a",
+  telephone: "#ea580c",
+  email: "#ea580c",
+  adresse: "#9333ea",
+  lieu: "#9333ea",
+  texte: "#64748b",
 };
 
-const MIN = 0.02;
-const ETIQUETTES = { signature: "Signature", nom: "Name", date: "Date" };
+export function couleurDe(type) {
+  return COULEURS[type] ?? "#64748b";
+}
 
-export function editeur(calques, signataires, surChangement = () => {}) {
+export function editeur(calques, surChangement = () => {}) {
   let zones = [];
-  let actif = { rang: 0, type: "signature" };
+  let actif = "signature";
+  let compteur = 0;
 
   function fraction(calque, evt) {
     const r = calque.getBoundingClientRect();
@@ -40,7 +54,7 @@ export function editeur(calques, signataires, surChangement = () => {}) {
     zones.forEach((z, i) => {
       const calque = calques[z.page];
       if (!calque) return;
-      const s = signataires[z.rang];
+      const couleur = couleurDe(z.type);
       const el = document.createElement("div");
       el.className = "zone";
       el.dataset.index = String(i);
@@ -48,11 +62,11 @@ export function editeur(calques, signataires, surChangement = () => {}) {
       el.style.top = `${z.y * 100}%`;
       el.style.width = `${z.w * 100}%`;
       el.style.height = `${z.h * 100}%`;
-      el.style.borderColor = s.couleur;
-      el.style.background = `${s.couleur}22`;
+      el.style.borderColor = couleur;
+      el.style.background = `${couleur}22`;
       el.innerHTML =
-        `<span class="etiquette" style="background:${s.couleur}">` +
-        `${s.nom || `Signer ${z.rang + 1}`} · ${ETIQUETTES[z.type]}</span>` +
+        `<span class="etiquette" style="background:${couleur}">` +
+        `${CHAMPS[z.type]?.libelle ?? z.type}</span>` +
         `<span class="poignee" data-role="redim"></span>` +
         `<button class="retirer" type="button" data-role="retirer" ` +
         `aria-label="Remove this box">×</button>`;
@@ -62,8 +76,7 @@ export function editeur(calques, signataires, surChangement = () => {}) {
   }
 
   function deplacerOuRedimensionner(evt, calque, el) {
-    const index = Number(el.dataset.index);
-    const z = zones[index];
+    const z = zones[Number(el.dataset.index)];
     if (!z) return;
     const redim = evt.target.dataset.role === "redim";
     const depart = fraction(calque, evt);
@@ -105,11 +118,10 @@ export function editeur(calques, signataires, surChangement = () => {}) {
       evt.preventDefault();
       const page = Number(calque.dataset.page);
       const debut = fraction(calque, evt);
-      const [dl, dh] = TAILLES[actif.type];
+      const [dl, dh] = CHAMPS[actif]?.taille ?? [0.25, 0.05];
       const zone = {
-        rang: actif.rang,
-        signataire_id: String(actif.rang),
-        type: actif.type,
+        id: `z${++compteur}`,
+        type: actif,
         page,
         x: debut.x,
         y: debut.y,
@@ -172,13 +184,13 @@ export function editeur(calques, signataires, surChangement = () => {}) {
   globalThis.addEventListener("keydown", annuler);
 
   return {
-    // Le serveur n'a que faire du rang, il lit signataire_id.
-    zones: () => zones.map(({ rang: _rang, ...z }) => z),
+    zones: () => zones.map((z) => ({ ...z })),
     compte: () => zones.length,
-    choisir: (rang, type) => {
-      actif = { rang, type };
+    compteDe: (type) => zones.filter((z) => z.type === type).length,
+    choisir: (type) => {
+      actif = type;
     },
-    actif: () => ({ ...actif }),
+    actif: () => actif,
     vider: () => {
       zones = [];
       dessiner();
