@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Parapheur</title>
+  <meta name="description" content="Send a PDF to be signed, without accounts.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Parapheur">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header id="entete">
+    <a class="marque" href="#/">Parapheur</a>
+    <nav id="nav" hidden>
+      <a href="#/">New</a>
+      <a href="#/suivi">Documents</a>
+    </nav>
+    <span id="qui"></span>
+  </header>
+
+  <main id="vue" aria-live="polite">
+    <section class="carte"><p class="aide">Loading…</p></section>
+  </main>
+
+  <footer>
+    <p>Documents are deleted 15 minutes after you download them, and after 7
+    days if nobody signs. Nothing is kept.</p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
