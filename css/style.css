@@ -66,15 +66,20 @@ h3 { margin: 24px 0 8px; font-size: 15px; text-transform: uppercase;
 
 label { display: block; font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
 
-input[type="text"], input[type="email"] {
+/* Tous les champs de saisie, sans exception. Cibler les types un par un laisse
+   fatalement un tel ou un textarea a la largeur par defaut du navigateur. */
+input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+textarea {
   width: 100%;
   padding: 11px 13px;
   border: 1px solid var(--bord);
   border-radius: 8px;
   font: inherit;
   background: var(--carte);
+  display: block;
 }
-input:focus { outline: 2px solid var(--bleu); outline-offset: 1px; }
+textarea { resize: vertical; min-height: 64px; }
+input:focus, textarea:focus { outline: 2px solid var(--bleu); outline-offset: 1px; }
 input[readonly] { background: var(--fond); color: var(--gris); }
 
 button, .bouton {
@@ -117,8 +122,18 @@ button, .bouton {
 
 .types { display: flex; flex-wrap: wrap; gap: 6px; }
 .puce { background: var(--carte); border: 2px solid var(--bord); font-size: 13px;
-        padding: 6px 10px; }
+        padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
 .puce-active { background: var(--encre); color: #fff; }
+.point { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.resume { margin: 14px 0; }
+
+/* La fenetre de signature peut porter beaucoup de champs : le bouton Sign doit
+   rester atteignable sans chercher. */
+.fenetre-carte .rangee:last-child {
+  position: sticky; bottom: 0; background: var(--carte);
+  padding-top: 12px; margin-top: 16px; border-top: 1px solid var(--bord);
+}
+.fenetre-carte .rangee:last-child button { flex: 1; }
 
 /* Le document et ses calques */
 .document { overflow-x: auto; }
