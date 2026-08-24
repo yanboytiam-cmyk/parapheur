@@ -1,17 +1,50 @@
-/* Parapheur. Sobre et lisible : c'est un outil de bureau, pas une vitrine.
-   L'ecran de creation vit sur un PC, l'ecran de signature sur un telephone. */
+/* Parapheur
+   ==========================================================================
+   Un parapheur est le classeur de cuir dans lequel on presente les documents
+   a signer. C'est de la papeterie de bureau : du papier, de l'encre, un geste.
+   Le decor vient de la, pas d'un tableau de bord.
+
+   Le chassis reste sourd (papier, encre) pour que la seule couleur vive de
+   l'ecran soit celle des champs poses sur le document : c'est la que l'oeil
+   doit aller. La marque de fabrique est le repere « x » du « sign here » des
+   contrats americains, qui revient sur la zone de signature et sur le cadre
+   de trace.
+   ========================================================================== */
 
 :root {
-  --encre: #0f172a;
-  --gris: #64748b;
-  --bord: #e2e8f0;
-  --fond: #f8fafc;
-  --carte: #ffffff;
-  --bleu: #2563eb;
-  --vert: #16a34a;
-  --orange: #ea580c;
-  --rouge: #dc2626;
-  --rayon: 10px;
+  /* Encre de stylo plume, delavee par paliers. */
+  --encre: #14213d;
+  --encre-douce: #3d4f6d;
+  --gris: #6f6a5f;
+  --gris-clair: #9a9488;
+
+  /* Papier. Jamais de blanc pur : l'ecran fatigue moins, et un PDF pose
+     dessus se detache enfin. */
+  --papier: #f7f5f0;
+  --feuille: #fffefb;
+  --bord: #e2ddd1;
+  --bord-fort: #cec7b6;
+
+  /* L'encre fraiche : la couleur de l'action, et d'elle seule. */
+  --action: #1d4ed8;
+  --action-sombre: #1739a8;
+  --action-voile: #e8edfb;
+
+  --vert: #17795e;
+  --ambre: #b45309;
+  --rouge: #b42318;
+  --rouge-voile: #fdf0ef;
+
+  --rayon: 12px;
+  --rayon-petit: 8px;
+  --ombre: 0 1px 2px rgba(20, 33, 61, .06), 0 8px 24px -12px rgba(20, 33, 61, .18);
+  --ombre-forte: 0 4px 12px rgba(20, 33, 61, .10), 0 24px 48px -20px rgba(20, 33, 61, .30);
+
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --transition: 160ms cubic-bezier(.2, .7, .3, 1);
 }
 
 * { box-sizing: border-box; }
@@ -21,124 +54,355 @@
    marque hidden reste visible. */
 [hidden] { display: none !important; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   margin: 0;
-  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 400 16px/1.6 var(--sans);
   color: var(--encre);
-  background: var(--fond);
+  background: var(--papier);
   padding-bottom: env(safe-area-inset-bottom);
+  /* La trame du papier : deux hachures a peine visibles, qui donnent une
+     matiere sans jamais gener la lecture. */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(20, 33, 61, .018) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(20, 33, 61, .018) 0 1px, transparent 1px 3px);
 }
+
+/* --- Entete -------------------------------------------------------------- */
 
 #entete {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 20px;
-  background: var(--carte);
+  gap: 24px;
+  padding: 16px 24px;
+  background: rgba(255, 254, 251, .88);
+  backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid var(--bord);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
-.marque { font-weight: 700; text-decoration: none; color: var(--encre); }
-#entete nav { display: flex; gap: 16px; }
-#entete nav a { color: var(--gris); text-decoration: none; font-size: 15px; }
-#entete nav a:hover { color: var(--encre); }
-#qui { margin-left: auto; color: var(--gris); font-size: 14px; }
+.marque {
+  font: 600 21px/1 var(--serif);
+  font-variation-settings: "SOFT" 20, "WONK" 1;
+  letter-spacing: -.015em;
+  color: var(--encre);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+}
+/* Le trait d'encre sous la marque : le geste, reduit a sa trace. */
+.marque::after {
+  content: "";
+  width: 26px;
+  height: 7px;
+  background: no-repeat center/contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'%3E%3Cpath d='M1 7C6 2 9 8 14 5s7-4 11-1 8 3 13-2' fill='none' stroke='%231d4ed8' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
 
-main { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+#entete nav { display: flex; gap: 4px; }
+#entete nav a {
+  color: var(--gris);
+  text-decoration: none;
+  font-size: 14.5px;
+  padding: 7px 12px;
+  border-radius: var(--rayon-petit);
+  transition: background var(--transition), color var(--transition);
+}
+#entete nav a:hover { color: var(--encre); background: rgba(20, 33, 61, .05); }
+
+#qui {
+  margin-left: auto;
+  color: var(--gris-clair);
+  font: 400 12.5px/1 var(--mono);
+  letter-spacing: -.02em;
+}
+
+/* --- Ossature ------------------------------------------------------------ */
+
+main { max-width: 1240px; margin: 32px auto; padding: 0 24px; }
 
 .carte {
-  background: var(--carte);
+  background: var(--feuille);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
-  padding: 24px;
+  padding: 28px;
+  box-shadow: var(--ombre);
+  animation: entree 420ms cubic-bezier(.2, .7, .3, 1) both;
 }
-.carte.etroite { max-width: 480px; margin: 0 auto; }
+.carte.etroite { max-width: 460px; margin: 8vh auto 0; }
 
-h2 { margin: 0 0 8px; font-size: 22px; }
-h3 { margin: 24px 0 8px; font-size: 15px; text-transform: uppercase;
-     letter-spacing: .04em; color: var(--gris); }
+@keyframes entree {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
 
-.aide { color: var(--gris); font-size: 14px; margin: 8px 0 16px; }
-.erreur { color: var(--rouge); font-size: 14px; margin: 12px 0; }
+h2 {
+  margin: 0 0 6px;
+  font: 600 27px/1.15 var(--serif);
+  font-variation-settings: "SOFT" 20, "WONK" 1;
+  letter-spacing: -.02em;
+}
+h3 {
+  margin: 26px 0 10px;
+  font: 500 11.5px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--gris-clair);
+}
+h3:first-of-type { margin-top: 0; }
 
-label { display: block; font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+.aide { color: var(--gris); font-size: 14px; margin: 8px 0 18px; }
+.aide:last-child { margin-bottom: 0; }
+
+/* --- Champs -------------------------------------------------------------- */
+
+label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  margin: 18px 0 6px;
+  color: var(--encre-douce);
+}
+label .aide { display: inline; font-size: 12.5px; margin: 0; }
 
 /* Tous les champs de saisie, sans exception. Cibler les types un par un laisse
    fatalement un tel ou un textarea a la largeur par defaut du navigateur. */
 input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
 textarea {
   width: 100%;
-  padding: 11px 13px;
-  border: 1px solid var(--bord);
-  border-radius: 8px;
-  font: inherit;
-  background: var(--carte);
   display: block;
+  padding: 11px 13px;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon-petit);
+  font: inherit;
+  color: var(--encre);
+  background: var(--feuille);
+  transition: border-color var(--transition), box-shadow var(--transition),
+              background var(--transition);
 }
-textarea { resize: vertical; min-height: 64px; }
-input:focus, textarea:focus { outline: 2px solid var(--bleu); outline-offset: 1px; }
-input[readonly] { background: var(--fond); color: var(--gris); }
+textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+
+input::placeholder, textarea::placeholder { color: var(--gris-clair); }
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: 0 0 0 3px var(--action-voile);
+}
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+input[readonly] {
+  background: var(--papier);
+  color: var(--gris);
+  border-style: dashed;
+}
+
+/* Validation en direct. L'etat se lit sans avoir a cliquer sur quoi que ce
+   soit : bordure, pastille, et un mot sous le champ quand c'est faux. */
+.champ { position: relative; }
+.champ input, .champ textarea { padding-right: 38px; }
+
+.champ[data-etat="valide"] input,
+.champ[data-etat="valide"] textarea { border-color: #86c5b0; }
+.champ[data-etat="erreur"] input,
+.champ[data-etat="erreur"] textarea {
+  border-color: var(--rouge);
+  background: var(--rouge-voile);
+}
+
+.marqueur {
+  position: absolute;
+  right: 12px;
+  top: 41px;
+  width: 17px;
+  height: 17px;
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity var(--transition), transform var(--transition);
+  pointer-events: none;
+}
+.champ[data-etat="valide"] .marqueur { opacity: 1; transform: none; }
+.marqueur svg { display: block; width: 100%; height: 100%; }
+.marqueur path {
+  stroke: var(--vert);
+  stroke-width: 2.4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+}
+.champ[data-etat="valide"] .marqueur path { animation: cocher 300ms ease forwards; }
+@keyframes cocher { to { stroke-dashoffset: 0; } }
+
+.souci {
+  color: var(--rouge);
+  font-size: 12.5px;
+  margin: 6px 0 0;
+  animation: entree 200ms ease both;
+}
+
+.erreur {
+  color: var(--rouge);
+  font-size: 13.5px;
+  margin: 14px 0;
+  padding: 10px 12px;
+  background: var(--rouge-voile);
+  border-left: 3px solid var(--rouge);
+  border-radius: 0 var(--rayon-petit) var(--rayon-petit) 0;
+  animation: secousse 320ms cubic-bezier(.36, .07, .19, .97) both;
+}
+@keyframes secousse {
+  10%, 90% { transform: translateX(-1px); }
+  30%, 70% { transform: translateX(2px); }
+  50% { transform: translateX(-2px); }
+}
+
+/* --- Boutons ------------------------------------------------------------- */
 
 button, .bouton {
-  font: inherit;
-  border-radius: 8px;
-  padding: 11px 18px;
+  font: 500 15px/1 var(--sans);
+  border-radius: var(--rayon-petit);
+  padding: 12px 20px;
   cursor: pointer;
   border: 1px solid transparent;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-decoration: none;
-  text-align: center;
+  transition: background var(--transition), border-color var(--transition),
+              transform var(--transition), box-shadow var(--transition),
+              color var(--transition);
 }
-.principal { background: var(--bleu); color: #fff; border-color: var(--bleu); }
-.principal:hover { background: #1d4ed8; }
-.principal:disabled { opacity: .6; cursor: default; }
-.secondaire { background: var(--carte); color: var(--encre); border-color: var(--bord); }
-.secondaire:hover { background: var(--fond); }
-.lien { background: none; border: none; color: var(--gris); text-decoration: underline;
-        padding: 6px 0; }
+button:active, .bouton:active { transform: translateY(1px); }
 
-.rangee { display: flex; gap: 10px; align-items: center; }
+.principal {
+  background: var(--action);
+  color: #fff;
+  border-color: var(--action);
+  box-shadow: 0 1px 2px rgba(29, 78, 216, .3);
+}
+.principal:hover { background: var(--action-sombre); border-color: var(--action-sombre); }
+.principal:disabled {
+  opacity: .55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.secondaire {
+  background: var(--feuille);
+  color: var(--encre);
+  border-color: var(--bord-fort);
+}
+.secondaire:hover { background: var(--papier); border-color: var(--gris-clair); }
+
+.lien {
+  background: none;
+  border: none;
+  color: var(--gris);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 8px 0;
+  font-size: 13.5px;
+}
+.lien:hover { color: var(--encre); }
+
+.rangee { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .rangee.entre { justify-content: space-between; }
 
-/* Depot du fichier */
-.depot { text-align: center; padding: 48px 20px; border: 2px dashed var(--bord);
-         border-radius: var(--rayon); }
+/* --- Depot du document --------------------------------------------------- */
 
-/* Atelier : outils a gauche, document a droite. C'est la disposition PC. */
-#atelier { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
-@media (max-width: 900px) {
+.depot {
+  text-align: center;
+  padding: 64px 24px;
+  border: 1.5px dashed var(--bord-fort);
+  border-radius: var(--rayon);
+  background:
+    repeating-linear-gradient(-45deg,
+      rgba(20, 33, 61, .012) 0 12px, transparent 12px 24px);
+  transition: border-color var(--transition), background var(--transition);
+}
+.depot:hover { border-color: var(--action); }
+
+/* --- Atelier : outils a gauche, document a droite ------------------------ */
+
+#atelier {
+  display: grid;
+  grid-template-columns: 296px 1fr;
+  gap: 32px;
+  align-items: start;
+  animation: entree 340ms ease both;
+}
+@media (max-width: 940px) {
   #atelier { grid-template-columns: 1fr; }
+  .colonne-outils { position: static; }
 }
 
-.colonne-outils { position: sticky; top: 80px; }
+.colonne-outils { position: sticky; top: 92px; }
 
-.signataire { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.pastille { width: 14px; height: 14px; border-radius: 50%; flex: none; }
-.signataire .retirer { border: none; background: none; color: var(--gris);
-                       font-size: 20px; line-height: 1; padding: 0 6px; }
-
+/* La palette de champs, groupee par famille. Les pastilles de couleur font le
+   lien avec ce qui est pose sur le document. */
+.famille { margin-bottom: 14px; }
+.famille-titre {
+  font: 400 10.5px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--gris-clair);
+  margin-bottom: 7px;
+}
 .types { display: flex; flex-wrap: wrap; gap: 6px; }
-.puce { background: var(--carte); border: 2px solid var(--bord); font-size: 13px;
-        padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
-.puce-active { background: var(--encre); color: #fff; }
-.point { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.resume { margin: 14px 0; }
 
-/* La fenetre de signature peut porter beaucoup de champs : le bouton Sign doit
-   rester atteignable sans chercher. */
-.fenetre-carte .rangee:last-child {
-  position: sticky; bottom: 0; background: var(--carte);
-  padding-top: 12px; margin-top: 16px; border-top: 1px solid var(--bord);
+.puce {
+  background: var(--feuille);
+  border: 1px solid var(--bord-fort);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 11px;
+  color: var(--encre-douce);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
 }
-.fenetre-carte .rangee:last-child button { flex: 1; }
+.puce:hover { border-color: var(--gris-clair); background: var(--papier); }
+.puce-active {
+  background: var(--encre);
+  color: #fff;
+  border-color: var(--encre);
+  box-shadow: 0 2px 8px -2px rgba(20, 33, 61, .4);
+}
+.point { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 
-/* Le document et ses calques */
-.document { overflow-x: auto; }
-.page { position: relative; margin: 0 auto 16px; box-shadow: 0 1px 6px rgba(0,0,0,.14);
-        background: #fff; max-width: 100%; }
+.resume {
+  margin: 18px 0;
+  padding: 12px 14px;
+  background: var(--papier);
+  border-radius: var(--rayon-petit);
+  border: 1px solid var(--bord);
+}
+.resume .aide { margin: 0; font-size: 13px; }
+.colonne-outils .principal { width: 100%; }
+
+/* --- Le document et ses calques ------------------------------------------ */
+
+.document { overflow-x: auto; padding-bottom: 8px; }
+.page {
+  position: relative;
+  margin: 0 auto 20px;
+  box-shadow: var(--ombre-forte);
+  background: #fff;
+  max-width: 100%;
+  border-radius: 3px;
+  overflow: hidden;
+}
 .page canvas { display: block; width: 100%; height: auto; }
 
 .calque { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
@@ -146,72 +410,306 @@ button, .bouton {
 
 .zone {
   position: absolute;
-  border: 2px solid var(--bleu);
-  border-radius: 4px;
+  border: 1.5px solid var(--action);
+  border-radius: 3px;
   cursor: move;
+  animation: pose 220ms cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes pose {
+  from { opacity: 0; transform: scale(.94); }
+  to { opacity: 1; transform: none; }
 }
 .zone-lecture { cursor: default; }
+
 .etiquette {
-  position: absolute; top: -20px; left: -2px;
-  font-size: 11px; color: #fff; padding: 1px 6px; border-radius: 4px;
+  position: absolute;
+  top: -19px;
+  left: -1px;
+  font: 500 10.5px/1 var(--mono);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 4px 4px 4px 0;
   white-space: nowrap;
-}
-.poignee {
-  position: absolute; right: -7px; bottom: -7px;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #fff; border: 2px solid currentColor; cursor: nwse-resize;
-}
-.zone .retirer {
-  position: absolute; top: -10px; right: -10px;
-  width: 22px; height: 22px; padding: 0; line-height: 1;
-  border-radius: 50%; background: #fff; border: 1px solid var(--bord);
-  color: var(--gris); font-size: 15px;
+  letter-spacing: -.01em;
 }
 
-/* Liens produits */
-.lien-signataire { display: grid; grid-template-columns: 140px 1fr auto;
-                   gap: 10px; align-items: center; margin-bottom: 10px; }
-@media (max-width: 640px) {
+/* Le repere du « sign here » : il n'apparait que sur la zone de signature,
+   comme sur un contrat papier. */
+.zone[data-type="signature"]::before {
+  content: "\00d7";
+  position: absolute;
+  left: 6px;
+  bottom: 3px;
+  font: 400 19px/1 var(--serif);
+  color: currentColor;
+  opacity: .45;
+}
+
+.poignee {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid currentColor;
+  cursor: nwse-resize;
+  transition: transform var(--transition);
+}
+.zone:hover .poignee { transform: scale(1.15); }
+
+.zone .retirer {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--bord-fort);
+  color: var(--gris);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition),
+              border-color var(--transition);
+}
+.zone:hover .retirer, .zone:focus-within .retirer { opacity: 1; }
+.zone .retirer:hover { color: var(--rouge); border-color: var(--rouge); }
+
+/* --- Le lien produit ----------------------------------------------------- */
+
+.lien-signataire {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  background: var(--papier);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon-petit);
+  margin: 16px 0;
+}
+.lien-signataire input {
+  font: 400 12.5px/1.4 var(--mono);
+  color: var(--gris);
+  background: var(--feuille);
+}
+@media (max-width: 620px) {
   .lien-signataire { grid-template-columns: 1fr; }
 }
 
-/* Suivi */
-.demande { border: 1px solid var(--bord); border-radius: var(--rayon);
-           padding: 16px; margin-bottom: 12px; }
-.demande-titre { display: flex; align-items: center; gap: 8px; }
-.pastille-alerte { width: 10px; height: 10px; border-radius: 50%;
-                   background: var(--rouge); flex: none; }
-.demande-etat { font-size: 14px; margin: 4px 0 8px; }
-.demande-etat.vert { color: var(--vert); font-weight: 600; }
-.demande-etat.orange { color: var(--orange); }
-.demande-etat.gris { color: var(--gris); }
-.signataires-etat { list-style: none; padding: 0; margin: 0 0 12px;
-                    font-size: 14px; color: var(--gris); }
-.demande-pied { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.compte-rebours { margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--orange); }
+/* --- Suivi --------------------------------------------------------------- */
 
-.encart { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--rayon);
-          padding: 16px; margin-bottom: 16px; }
-.encart .aide { margin-bottom: 10px; }
-
-/* Signature */
-.barre-bas {
-  position: sticky; bottom: 0;
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-  background: var(--carte); border-top: 1px solid var(--bord); text-align: center;
+.demande {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: 18px;
+  margin-bottom: 12px;
+  background: var(--feuille);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  animation: entree 340ms ease both;
 }
-.barre-bas .principal { width: 100%; max-width: 420px; padding: 14px; font-size: 17px; }
+.demande:hover { border-color: var(--bord-fort); box-shadow: var(--ombre); }
+.demande-titre { display: flex; align-items: center; gap: 9px; font-size: 15.5px; }
+
+.pastille-alerte {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--action);
+  flex: none;
+  animation: pulsation 2.4s ease-out infinite;
+}
+@keyframes pulsation {
+  0% { box-shadow: 0 0 0 0 rgba(29, 78, 216, .45); }
+  70% { box-shadow: 0 0 0 9px rgba(29, 78, 216, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(29, 78, 216, 0); }
+}
+
+.demande-etat { font-size: 13.5px; margin: 6px 0 12px; }
+.demande-etat.vert { color: var(--vert); font-weight: 500; }
+.demande-etat.ambre { color: var(--ambre); }
+.demande-etat.gris { color: var(--gris-clair); }
+
+.demande-pied { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demande-pied .aide { margin: 0; font: 400 12px/1 var(--mono); }
+
+.compte-rebours {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  background: var(--action-voile);
+  border-radius: var(--rayon-petit);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--action-sombre);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: entree 260ms ease both;
+}
+.minuteur { font: 500 14px/1 var(--mono); }
+
+.encart {
+  background: var(--action-voile);
+  border: 1px solid #c7d5f7;
+  border-radius: var(--rayon-petit);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  animation: entree 320ms ease both;
+}
+.encart strong { display: block; margin-bottom: 4px; font-size: 15px; }
+.encart .aide { margin: 6px 0 12px; }
+
+/* --- Signature ----------------------------------------------------------- */
+
+.barre-bas {
+  position: sticky;
+  bottom: 0;
+  padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
+  background: rgba(255, 254, 251, .93);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--bord);
+  text-align: center;
+  z-index: 15;
+}
+.barre-bas .principal {
+  width: 100%;
+  max-width: 420px;
+  padding: 15px;
+  font-size: 16px;
+}
 
 .fenetre {
-  position: fixed; inset: 0; background: rgba(15, 23, 42, .55);
-  display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 33, 61, .42);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+  animation: voile 200ms ease both;
 }
-.fenetre-carte {
-  background: var(--carte); border-radius: var(--rayon); padding: 22px;
-  width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
-}
-.cadre-trace { border: 1px dashed var(--bord); border-radius: 8px; background: var(--fond); }
-#trace { display: block; width: 100%; height: auto; touch-action: none; }
+@keyframes voile { from { opacity: 0; } to { opacity: 1; } }
 
-footer { max-width: 1200px; margin: 32px auto; padding: 0 20px 32px;
-         color: var(--gris); font-size: 13px; }
+.fenetre-carte {
+  background: var(--feuille);
+  border-radius: var(--rayon);
+  padding: 26px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: var(--ombre-forte);
+  animation: monte 300ms cubic-bezier(.2, .9, .3, 1) both;
+}
+@keyframes monte {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+.fenetre-carte h3 { margin-top: 0; }
+
+@media (max-width: 560px) {
+  .fenetre { align-items: flex-end; padding: 0; }
+  .fenetre-carte {
+    border-radius: var(--rayon) var(--rayon) 0 0;
+    max-height: 94vh;
+    padding-bottom: calc(26px + env(safe-area-inset-bottom));
+    animation-name: monte-bas;
+  }
+}
+@keyframes monte-bas {
+  from { opacity: .5; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Le cadre de trace reprend la ligne de signature d'un contrat : un trait
+   plein, precede du repere « x ». */
+.cadre-trace {
+  position: relative;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon-petit);
+  background: var(--papier);
+  overflow: hidden;
+}
+.cadre-trace::before {
+  content: "\00d7";
+  position: absolute;
+  left: 14px;
+  bottom: 18px;
+  font: 400 24px/1 var(--serif);
+  color: var(--bord-fort);
+  pointer-events: none;
+}
+.cadre-trace::after {
+  content: "";
+  position: absolute;
+  left: 40px;
+  right: 18px;
+  bottom: 26px;
+  border-bottom: 1px solid var(--bord-fort);
+  pointer-events: none;
+}
+#trace {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  position: relative;
+  z-index: 1;
+}
+
+.actions-trace { display: flex; justify-content: flex-end; margin-top: 8px; }
+.actions-trace button { padding: 7px 14px; font-size: 13.5px; }
+
+/* La barre d'action de la fenetre reste atteignable, meme avec dix champs. */
+.pied-fenetre {
+  position: sticky;
+  bottom: 0;
+  background: var(--feuille);
+  padding-top: 14px;
+  margin-top: 20px;
+  border-top: 1px solid var(--bord);
+  display: flex;
+  gap: 10px;
+}
+.pied-fenetre button { flex: 1; }
+
+/* --- L'ecran final : le trait qui se dessine ----------------------------- */
+
+.acte { text-align: center; padding: 16px 0 4px; }
+.acte svg { width: 148px; height: 52px; }
+.acte path {
+  fill: none;
+  stroke: var(--action);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 240;
+  stroke-dashoffset: 240;
+  animation: signer 1100ms cubic-bezier(.4, .1, .3, 1) 140ms forwards;
+}
+@keyframes signer { to { stroke-dashoffset: 0; } }
+
+footer {
+  max-width: 1240px;
+  margin: 40px auto;
+  padding: 0 24px 40px;
+  color: var(--gris-clair);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* --- Sobriete imposee ---------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .acte path { stroke-dashoffset: 0; }
+}

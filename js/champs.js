@@ -93,6 +93,14 @@ export const CHAMPS = {
 
 export const TYPES_VALIDES = Object.keys(CHAMPS);
 
+// Les codes de confidentialite trop devinables. Partages avec le navigateur,
+// qui doit pouvoir le dire avant meme d'appeler le serveur.
+export const CODES_TRIVIAUX = [
+  "0000", "1111", "2222", "3333", "4444",
+  "5555", "6666", "7777", "8888", "9999",
+  "1234", "4321", "0123",
+];
+
 export function estTypeValide(t) {
   return typeof t === "string" && t in CHAMPS;
 }

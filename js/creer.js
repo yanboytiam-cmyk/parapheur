@@ -2,7 +2,18 @@ import { api, message } from "./api.js";
 import { identite, nomsConnus } from "./identite.js";
 import { rendre } from "./pdf-vue.js";
 import { couleurDe, editeur } from "./editeur-zones.js";
-import { CHAMPS, ORDRE_AFFICHAGE } from "./champs.js";
+import { CHAMPS } from "./champs.js";
+import { marqueurHtml } from "./validation.js";
+
+// Les champs, ranges comme on les cherche : d'abord le geste, puis qui, puis
+// comment joindre, puis ou.
+const FAMILLES = [
+  ["The act", ["signature", "date"]],
+  ["Who", ["nom_complet", "prenom", "nom"]],
+  ["Contact", ["telephone", "email"]],
+  ["Where", ["adresse", "lieu"]],
+  ["Anything else", ["texte"]],
+];
 
 // L'ecran de creation. Le seul concu pour le PC d'abord : deposer un document
 // et poser des champs au millimetre se fait a la souris, sur grand ecran.
@@ -30,22 +41,25 @@ export function afficher(vue) {
       <div id="depot" class="depot">
         <input id="fichier" type="file" accept="application/pdf" hidden>
         <button type="button" id="choisir" class="principal">Choose a PDF</button>
-        <p class="aide">Up to 10 MB and 30 pages. Nothing is kept: the document
-        is deleted once it is signed and you have downloaded it.</p>
+        <p class="aide">Up to 10 MB and 30 pages. Nothing is kept: the file is
+        deleted once it is signed and you have downloaded it.</p>
       </div>
 
       <div id="atelier" hidden>
         <div class="colonne-outils">
           <h3>Who signs</h3>
-          <input id="signataire" type="text" list="noms-connus"
-                 placeholder="Their name" autocomplete="off">
-          <p class="aide">One person signs this document. To have a second
-          person sign it too, download the signed file and send it again.</p>
+          <div class="champ">
+            <input id="signataire" type="text" list="noms-connus"
+                   placeholder="Their name" autocomplete="off">
+            ${marqueurHtml()}
+          </div>
+          <p class="aide">One person per document. For a second signature,
+          download the signed file and send it again.</p>
 
-          <h3>Add a field</h3>
-          <p class="aide">Pick a field, then click or drag on the document.
-          Drag a field to move it, use its corner to resize, Ctrl+Z to undo.</p>
-          <div id="types" class="types"></div>
+          <h3>Place a field</h3>
+          <p class="aide">Pick one, then click on the document. Drag to size it,
+          drag it again to move, Ctrl+Z to undo.</p>
+          <div id="types"></div>
 
           <div id="resume" class="resume"></div>
           <p class="erreur" id="erreur" role="alert" hidden></p>
@@ -73,38 +87,47 @@ export function afficher(vue) {
   function dessinerTypes() {
     const boite = vue.querySelector("#types");
     boite.replaceChildren();
-    for (const type of ORDRE_AFFICHAGE) {
-      const champ = CHAMPS[type];
-      const couleur = couleurDe(type);
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "puce" + (edit?.actif() === type ? " puce-active" : "");
-      b.style.borderColor = couleur;
-      b.dataset.type = type;
-      b.innerHTML = `<span class="point" style="background:${couleur}"></span>${champ.libelle}`;
-      b.addEventListener("click", () => {
-        edit?.choisir(type);
-        dessinerTypes();
-      });
-      boite.appendChild(b);
+    for (const [titre, types] of FAMILLES) {
+      const groupe = document.createElement("div");
+      groupe.className = "famille";
+      groupe.innerHTML = `<div class="famille-titre">${titre}</div>`;
+      const rangee = document.createElement("div");
+      rangee.className = "types";
+      for (const type of types) {
+        const couleur = couleurDe(type);
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "puce" + (edit?.actif() === type ? " puce-active" : "");
+        b.dataset.type = type;
+        b.innerHTML =
+          `<span class="point" style="background:${couleur}"></span>` +
+          `${CHAMPS[type].libelle}`;
+        b.addEventListener("click", () => {
+          edit?.choisir(type);
+          dessinerTypes();
+        });
+        rangee.appendChild(b);
+      }
+      groupe.appendChild(rangee);
+      boite.appendChild(groupe);
     }
   }
 
   function dessinerResume(zones) {
     const boite = vue.querySelector("#resume");
     if (!zones.length) {
-      boite.innerHTML = `<p class="aide">No field placed yet.</p>`;
+      boite.innerHTML =
+        `<p class="aide">Nothing placed yet. A signature field is required.</p>`;
       return;
     }
     const parType = {};
     for (const z of zones) parType[z.type] = (parType[z.type] ?? 0) + 1;
-    boite.innerHTML = `<p class="aide">${zones.length} field${
-      zones.length > 1 ? "s" : ""
-    } placed: ${
+    const signe = parType.signature === 1;
+    boite.innerHTML = `<p class="aide">${
       Object.entries(parType)
         .map(([t, n]) => `${CHAMPS[t]?.libelle ?? t}${n > 1 ? ` ×${n}` : ""}`)
-        .join(", ")
-    }</p>`;
+        .join(" · ")
+    }${signe ? "" : "<br><strong>A signature field is still missing.</strong>"}</p>`;
   }
 
   champFichier.addEventListener("change", async () => {
@@ -123,6 +146,12 @@ export function afficher(vue) {
         dire("");
         dessinerResume(zones);
       });
+      const nomSignataire = vue.querySelector("#signataire");
+      const marquerNom = () => {
+        nomSignataire.closest(".champ").dataset.etat =
+          nomSignataire.value.trim().length >= 2 ? "valide" : "";
+      };
+      nomSignataire.addEventListener("input", marquerNom);
       dessinerTypes();
       dessinerResume([]);
       vue.querySelector("#signataire").focus();
@@ -135,16 +164,21 @@ export function afficher(vue) {
 
   vue.querySelector("#creer").addEventListener("click", async () => {
     dire("");
-    const nom = vue.querySelector("#signataire").value.trim();
-    if (nom.length < 2) return dire("Please enter the name of the person who signs.");
+    const champNom = vue.querySelector("#signataire");
+    const nom = champNom.value.trim();
+    if (nom.length < 2) {
+      champNom.closest(".champ").dataset.etat = "erreur";
+      champNom.focus();
+      return dire("Enter the name of the person who signs.");
+    }
 
     const zones = edit?.zones() ?? [];
     const signatures = zones.filter((z) => z.type === "signature").length;
     if (signatures === 0) {
-      return dire("Please place a Signature field on the document.");
+      return dire("Place a Signature field on the document first.");
     }
     if (signatures > 1) {
-      return dire("Only one signature per document. Remove the extra one.");
+      return dire("One signature per document. Remove the extra one.");
     }
 
     const bouton = vue.querySelector("#creer");

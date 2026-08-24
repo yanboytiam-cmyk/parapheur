@@ -1,22 +1,32 @@
 import { api, message } from "./api.js";
 import { marquer, rendre } from "./pdf-vue.js";
-import { CHAMPS, verifierValeur } from "./champs.js";
+import { CHAMPS } from "./champs.js";
 import { couleurDe } from "./editeur-zones.js";
+import { marqueurHtml, surveiller, verifierTout } from "./validation.js";
 
 // L'ecran du signataire. Concu pour le doigt : c'est souvent sur un telephone
 // qu'on ouvre un lien recu par WhatsApp. Rien a installer, aucun compte.
 
-function annonce(vue, titre, texte) {
+// Le trait qui se dessine sur l'ecran final. C'est le geste qu'on vient de
+// faire, rejoue une fois.
+const TRAIT_SIGNATURE = `
+  <div class="acte">
+    <svg viewBox="0 0 160 56" aria-hidden="true">
+      <path d="M8 42c14-2 20-30 27-30s2 26 9 27 12-22 19-22 3 20 10 20 13-15 20-15 8 9 15 9 12-6 18-14"/>
+    </svg>
+  </div>`;
+
+function annonce(vue, titre, texte, avecTrait = false) {
   vue.innerHTML =
-    `<section class="carte etroite"><h2>${titre}</h2>` +
-    `<p class="aide">${texte}</p></section>`;
+    `<section class="carte etroite">${avecTrait ? TRAIT_SIGNATURE : ""}` +
+    `<h2>${titre}</h2><p class="aide">${texte}</p></section>`;
   document.querySelector(".barre-bas")?.remove();
 }
 
 export async function afficher(vue, jeton) {
   if (!jeton) return annonce(vue, "Invalid link", message("introuvable"));
 
-  vue.innerHTML = `<section class="carte"><p class="aide">Loading the document…</p></section>`;
+  vue.innerHTML = `<section class="carte"><p class="aide">Opening the document…</p></section>`;
   const d = await api.voirDemande(jeton);
   if (!d.ok) return annonce(vue, "This link is not available", message(d.raison));
 
@@ -24,15 +34,17 @@ export async function afficher(vue, jeton) {
     return annonce(
       vue,
       "Already signed",
-      "You have already signed this document. Your copy was downloaded when you signed.",
+      "This document has been signed. Your copy was downloaded at the time.",
+      true,
     );
   }
 
+  const aRemplir = (d.champs ?? []).length;
   vue.innerHTML = `
     <section class="carte">
       <h2>${d.titre}</h2>
-      <p class="aide">Please read the document. The highlighted boxes are what
-      you will be asked to fill in.</p>
+      <p class="aide">Read the document. The highlighted boxes are what you will
+      be asked for${aRemplir ? `: ${aRemplir} field${aRemplir > 1 ? "s" : ""} and your signature` : ""}.</p>
       <div id="document" class="document lecture"></div>
     </section>
     <div class="barre-bas">
@@ -43,12 +55,7 @@ export async function afficher(vue, jeton) {
   try {
     const calques = await rendre(zoneDoc, d.url_pdf);
     for (const z of d.zones ?? []) {
-      marquer(
-        calques[z.page],
-        z,
-        couleurDe(z.type),
-        CHAMPS[z.type]?.libelle ?? z.type,
-      );
+      marquer(calques[z.page], z, couleurDe(z.type), CHAMPS[z.type]?.libelle ?? z.type);
     }
   } catch {
     return annonce(vue, "Cannot display this document", message("pas_un_pdf"));
@@ -61,23 +68,24 @@ export async function afficher(vue, jeton) {
 }
 
 function champHtml(champ, nomSuggere) {
-  const commun =
+  const attributs =
     `id="champ-${champ.id}" data-id="${champ.id}" data-type="${champ.type}"`;
   // Le nom que le createur a saisi prerempli le premier champ de nom.
   const valeur = ["nom_complet", "prenom", "nom"].includes(champ.type)
     ? nomSuggere
     : "";
+  const type = champ.clavier === "tel" ? "tel" : champ.clavier === "email" ? "email" : "text";
 
   const saisie = champ.multiligne
-    ? `<textarea ${commun} rows="2"></textarea>`
-    : `<input ${commun} type="${
-      champ.clavier === "tel" ? "tel" : champ.clavier === "email" ? "email" : "text"
-    }" inputmode="${champ.clavier === "tel" ? "tel" : "text"}" ` +
+    ? `<textarea ${attributs} rows="2"></textarea>`
+    : `<input ${attributs} type="${type}" ` +
+      `inputmode="${champ.clavier === "tel" ? "tel" : "text"}" ` +
       `autocomplete="${autoCompletion(champ.type)}" value="${valeur}">`;
 
-  return `<label for="champ-${champ.id}">${champ.libelle}${
-    champ.obligatoire ? "" : " <span class=\"aide\">(optional)</span>"
-  }</label>${saisie}`;
+  return `<div class="champ">
+    <label for="champ-${champ.id}">${champ.libelle}${
+    champ.obligatoire ? "" : ` <span class="aide">optional</span>`
+  }</label>${saisie}${marqueurHtml()}</div>`;
 }
 
 function autoCompletion(type) {
@@ -104,34 +112,43 @@ function fenetreSignature(vue, d, jeton) {
   const fenetre = document.createElement("div");
   fenetre.className = "fenetre";
   fenetre.innerHTML = `
-    <div class="fenetre-carte" role="dialog" aria-modal="true" aria-label="Sign">
-      <h3>Sign the document</h3>
+    <div class="fenetre-carte" role="dialog" aria-modal="true"
+         aria-label="Sign this document">
+      <h3>Sign this document</h3>
 
       ${champs.map((c) => champHtml(c, d.nom_attendu ?? "")).join("")}
 
-      <label for="trace">Draw your signature</label>
+      <label for="trace">Your signature</label>
       <div class="cadre-trace">
-        <canvas id="trace" width="640" height="220"></canvas>
+        <canvas id="trace" width="640" height="200"></canvas>
       </div>
-      <button type="button" id="effacer" class="secondaire">Clear</button>
+      <div class="actions-trace">
+        <button type="button" id="effacer" class="lien">Clear signature</button>
+      </div>
 
       <label for="date">Date</label>
       <input id="date" type="text" readonly value="${maintenant}">
 
       <p class="erreur" id="erreur-signature" role="alert" hidden></p>
-      <div class="rangee">
+
+      <div class="pied-fenetre">
         <button type="button" id="annuler" class="secondaire">Cancel</button>
         <button type="button" id="valider" class="principal">Sign</button>
       </div>
     </div>`;
   document.body.appendChild(fenetre);
 
+  // Validation en direct sur chaque champ.
+  const surveillances = champs.map((c) =>
+    surveiller(fenetre.querySelector(`#champ-${c.id}`), c.type)
+  ).filter(Boolean);
+
   const toile = fenetre.querySelector("#trace");
   const ctx = toile.getContext("2d");
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.6;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.strokeStyle = "#0f172a";
+  ctx.strokeStyle = "#14213d";
 
   // On suit l'etendue du trace pour rogner le PNG : une signature entouree de
   // vide s'incruste minuscule dans sa zone.
@@ -162,6 +179,7 @@ function fenetreSignature(vue, d, jeton) {
     ctx.moveTo(p.x, p.y);
     noter(p);
     dessine = true;
+    dire("");
 
     const bouger = (e) => {
       const q = point(e);
@@ -183,32 +201,42 @@ function fenetreSignature(vue, d, jeton) {
     dessine = false;
   });
 
-  fenetre.querySelector("#annuler").addEventListener("click", () => fenetre.remove());
+  const fermer = () => {
+    globalThis.removeEventListener("keydown", auClavier);
+    fenetre.remove();
+  };
+  const auClavier = (evt) => {
+    if (evt.key === "Escape") fermer();
+  };
+  globalThis.addEventListener("keydown", auClavier);
+
+  fenetre.querySelector("#annuler").addEventListener("click", fermer);
+  fenetre.addEventListener("pointerdown", (evt) => {
+    if (evt.target === fenetre) fermer();
+  });
 
   const erreur = fenetre.querySelector("#erreur-signature");
-  const dire = (t) => {
+  function dire(t) {
     erreur.textContent = t;
     erreur.hidden = !t;
-  };
+  }
 
   fenetre.querySelector("#valider").addEventListener("click", async () => {
     dire("");
 
-    // On verifie ici avec les memes regles que le serveur : la personne corrige
-    // tout de suite, sans aller-retour.
-    const valeurs = {};
-    for (const c of champs) {
-      const el = fenetre.querySelector(`#champ-${c.id}`);
-      const valeur = (el?.value ?? "").trim();
-      const souci = verifierValeur(c.type, valeur);
-      if (souci) {
-        el?.focus();
-        return dire(souci);
-      }
-      valeurs[c.id] = valeur;
+    // Les memes regles que le serveur : la personne corrige tout de suite,
+    // sans aller-retour.
+    if (!verifierTout(surveillances)) {
+      return dire("Please check the highlighted fields.");
+    }
+    if (!dessine || !boite) {
+      dire("Please draw your signature above.");
+      toile.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
     }
 
-    if (!dessine || !boite) return dire("Please draw your signature.");
+    const valeurs = {};
+    champs.forEach((c, i) => (valeurs[c.id] = surveillances[i].valeur()));
 
     const bouton = fenetre.querySelector("#valider");
     bouton.disabled = true;
@@ -220,14 +248,15 @@ function fenetreSignature(vue, d, jeton) {
     bouton.textContent = "Sign";
     if (!r.ok) return dire(r.detail ?? message(r.raison));
 
-    fenetre.remove();
-    telecharger(r.url_copie, `signed-${d.titre}`);
+    fermer();
+    telecharger(r.url_copie);
     vue.innerHTML = `
       <section class="carte etroite">
+        ${TRAIT_SIGNATURE}
         <h2>Signed</h2>
-        <p class="aide">Thank you. Your copy has been downloaded to this device.
-        If the download did not start,
-        <a href="${r.url_copie}" download>tap here</a>.</p>
+        <p class="aide">Your copy has been downloaded to this device. If the
+        download did not start, <a href="${r.url_copie}">get it here</a>. The
+        copy stays available for 15 minutes.</p>
       </section>`;
     document.querySelector(".barre-bas")?.remove();
   });
@@ -251,10 +280,12 @@ function rognerEnPng(toile, boite) {
   return rogne.toDataURL("image/png").split(",")[1];
 }
 
-function telecharger(url, nom) {
+// Le nom du fichier vient du serveur, par l'en-tete Content-Disposition :
+// l'attribut download d'un lien est ignore d'un domaine a l'autre.
+function telecharger(url) {
   const a = document.createElement("a");
   a.href = url;
-  a.download = nom;
+  a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
