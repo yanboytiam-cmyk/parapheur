@@ -5,6 +5,7 @@ import { couleurDe } from "./editeur-zones.js";
 import { marqueurHtml, surveiller, verifierTout } from "./validation.js";
 import { enregistrerPdf } from "./telechargement.js";
 import { CHEMIN_PARAPHE } from "./marque.js";
+import { appareilSignataire } from "./identite.js";
 
 // Un exemple par champ : la personne voit la forme attendue avant de se
 // tromper. C'est ce qui evite le plus d'allers-retours.
@@ -65,7 +66,10 @@ export async function afficher(vue, jeton) {
   if (!jeton) return annonce(vue, "Invalid link", message("introuvable"));
 
   vue.innerHTML = `<section class="carte"><p class="aide">Opening the document…</p></section>`;
-  const d = await api.voirDemande(jeton);
+  // Le meme lien pour tout le monde : c est l appareil qui distingue les
+  // signataires, et le serveur lui attribue sa place.
+  const appareil = appareilSignataire();
+  const d = await api.voirDemande(jeton, appareil);
   if (!d.ok) return annonce(vue, "This link is not available", message(d.raison));
 
   if (d.deja_signe) {
@@ -342,7 +346,13 @@ function fenetreSignature(vue, d, jeton) {
     bouton.disabled = true;
     bouton.textContent = "Signing…";
 
-    const r = await api.signer(jeton, valeurs, rognerEnPng(toile, boite));
+    const r = await api.signer(
+      jeton,
+      appareilSignataire(),
+      d.ma_place ?? 0,
+      valeurs,
+      rognerEnPng(toile, boite),
+    );
 
     bouton.disabled = false;
     bouton.textContent = "Sign";

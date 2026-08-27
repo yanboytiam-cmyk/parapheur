@@ -24,10 +24,16 @@ export const api = {
 
   creerDemande: (charge) => poster("creer-demande", charge),
 
-  voirDemande: (jeton) => poster("voir-demande", { jeton }),
+  // Le lien est le meme pour tout le monde : c'est `appareil_id` qui distingue
+  // les signataires. `place` n'est envoye qu'au moment ou le signataire choisit
+  // la sienne, et le serveur la lui reserve dans le meme appel.
+  voirDemande: (jeton, appareil_id, place) =>
+    poster("voir-demande", place === undefined
+      ? { jeton, appareil_id }
+      : { jeton, appareil_id, place }),
 
-  signer: (jeton, valeurs, signature_png_base64) =>
-    poster("signer", { jeton, valeurs, signature_png_base64 }),
+  signer: (jeton, appareil_id, place, valeurs, signature_png_base64) =>
+    poster("signer", { jeton, appareil_id, place, valeurs, signature_png_base64 }),
 
   telecharger: (email, code, demande_id) =>
     poster("telecharger", { email, code, demande_id }),

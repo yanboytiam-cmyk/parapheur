@@ -35,6 +35,37 @@ export const identite = {
   },
 };
 
+// L'appareil du signataire, qui lui n'a ni compte ni code.
+//
+// C'est ce qui porte la regle « un appareil, une signature » : le lien est le
+// meme pour tout le monde, seul l'appareil distingue les gens. Il permet aussi
+// a quelqu'un qui revient de retrouver sa place au lieu d'en prendre une
+// seconde.
+//
+// Sa portee est celle du navigateur, pas celle du materiel : vider ses donnees
+// ou passer en navigation privee donne un nouvel appareil. Cela empeche les
+// accidents, la personne qui tape deux fois ou qui doute que sa signature soit
+// passee. Cela n'empeche pas quelqu'un de determine, et l'outil ne pretend pas
+// le contraire.
+
+const CLE_APPAREIL = "parapheur.appareil";
+
+export function appareilSignataire() {
+  try {
+    const garde = localStorage.getItem(CLE_APPAREIL);
+    if (garde) return garde;
+    const neuf = crypto.randomUUID();
+    localStorage.setItem(CLE_APPAREIL, neuf);
+    return neuf;
+  } catch {
+    // Navigation privee ou stockage refuse : on tourne quand meme, avec un
+    // identifiant qui ne survit pas au rechargement. La signature passe, la
+    // protection contre le double clic tombe. C'est le bon compromis : mieux
+    // vaut une signature de trop qu'un signataire bloque.
+    return crypto.randomUUID();
+  }
+}
+
 // Les noms deja utilises, pour ne pas les retaper chaque semaine.
 export const nomsConnus = {
   lister() {

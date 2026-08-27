@@ -1131,3 +1131,81 @@ body.en-glissement .calque { cursor: grabbing; }
   color: var(--gris);
   word-break: break-word;
 }
+
+/* --- L'ecran de cadrage : qui va signer --------------------------------- */
+/* Pose avant le depot du document, parce que la reponse determine tout le
+   reste. Trois choix, presentes comme des cartes cliquables : sur telephone,
+   un bouton radio nu est trop petit pour le pouce. */
+
+.choix-mode { display: grid; gap: 10px; margin: 18px 0; }
+
+.option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--feuille);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.option:hover { border-color: var(--bord-fort); }
+.option:has(input:checked) {
+  border-color: var(--action);
+  background: var(--action-voile);
+}
+.option input { margin-top: 3px; flex: 0 0 auto; }
+.option-corps { display: flex; flex-direction: column; gap: 3px; }
+.option-corps strong { font-weight: 600; }
+
+.detail-mode {
+  padding: 14px 16px;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--papier);
+  margin-bottom: 16px;
+}
+.detail-mode .champ + .champ, .champ-nom + .champ-nom { margin-top: 10px; }
+.champ-nom { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 10px; }
+.champ-nom span { font-size: .9rem; color: var(--encre-douce); }
+.champ-nom input { padding-right: 12px; }
+
+/* Le rappel du cadrage, en tete de l'atelier : on doit pouvoir verifier d'un
+   coup d'oeil pour qui on prepare le document, et revenir en arriere. */
+.rappel-cadrage {
+  font-size: .92rem;
+  color: var(--encre-douce);
+  margin: -4px 0 18px;
+}
+.lien-discret { margin-left: 8px; color: var(--action); text-decoration: underline; }
+
+/* --- Les personnes, dans la palette ------------------------------------ */
+/* Mode `partage` seulement : le createur pose une ligne par personne, et doit
+   savoir laquelle il est en train de poser. */
+
+.places-palette { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.puce-place { font-variant-numeric: tabular-nums; }
+.puce-faite { border-color: #86c5b0; color: var(--vert); }
+.puce-faite.puce-active { border-color: var(--vert); }
+
+/* Le numero de la personne sur la zone posee. Sans lui, deux lignes d'une
+   feuille de presence sont impossibles a distinguer a l'oeil. */
+.etiquette-place {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .28);
+  font-size: .68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .champ-nom { grid-template-columns: 1fr; gap: 4px; }
+}

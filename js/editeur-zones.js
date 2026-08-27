@@ -28,9 +28,16 @@ export function couleurDe(type) {
   return COULEURS[type] ?? "#6b7194";
 }
 
-export function editeur(calques, surChangement = () => {}) {
+// `multiPlaces` : le document attend plusieurs personnes a des endroits
+// differents. Chaque zone porte alors le numero de la personne a qui elle
+// appartient, sans quoi deux lignes d'une feuille de presence sont impossibles
+// a distinguer a l'oeil.
+export function editeur(calques, surChangement = () => {}, multiPlaces = false) {
   const zones = [];
   let actif = "signature";
+  // La place que prendront les prochaines zones posees. Le createur la change
+  // dans la palette quand plusieurs personnes signent a des endroits differents.
+  let actifPlace = 0;
   let compteur = 0;
 
   function fraction(calque, clientX, clientY) {
@@ -61,11 +68,17 @@ export function editeur(calques, surChangement = () => {}) {
     const el = document.createElement("div");
     el.className = "zone";
     el.dataset.type = z.type;
+    el.dataset.place = String(z.place ?? 0);
     el.style.color = couleur;
     el.style.borderColor = couleur;
+    // Le numero de la personne, quand il y en a plusieurs. Sans lui, deux
+    // lignes d'une feuille de presence sont impossibles a distinguer a l'oeil.
+    const marque = (z.place ?? 0) > 0 || multiPlaces
+      ? `<span class="etiquette-place">${(z.place ?? 0) + 1}</span>`
+      : "";
     el.innerHTML =
       `<span class="etiquette" style="background:${couleur}">` +
-      `${CHAMPS[z.type]?.libelle ?? z.type}</span>` +
+      `${marque}${CHAMPS[z.type]?.libelle ?? z.type}</span>` +
       `<span class="poignee" data-role="redim" title="Resize"></span>` +
       `<button class="retirer" type="button" data-role="retirer" ` +
       `aria-label="Remove this field">×</button>`;
@@ -164,6 +177,10 @@ export function editeur(calques, surChangement = () => {}) {
       y,
       w: w ?? CHAMPS[type]?.taille[0] ?? 0.25,
       h: h ?? CHAMPS[type]?.taille[1] ?? 0.05,
+      // A quelle personne cette zone appartient. Ne sert qu'en mode `partage`,
+      // ou le createur pose une ligne par personne ; ailleurs il n'y a qu'un
+      // seul jeu de zones et la place vaut 0.
+      place: actifPlace,
       el: null,
     };
     borner(z);
@@ -243,6 +260,13 @@ export function editeur(calques, surChangement = () => {}) {
       actif = type;
     },
     actif: () => actif,
+    choisirPlace: (n) => {
+      actifPlace = Math.max(0, n | 0);
+    },
+    placeActive: () => actifPlace,
+    compteSignaturesDe: (place) =>
+      zonesNues().filter((z) => z.type === "signature" && (z.place ?? 0) === place)
+        .length,
 
     // Le glisser-deposer depuis la palette : on lache une puce sur le document.
     calqueSous(clientX, clientY) {

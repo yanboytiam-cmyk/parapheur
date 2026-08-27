@@ -4,6 +4,7 @@ import { rendre } from "./pdf-vue.js";
 import { couleurDe, editeur } from "./editeur-zones.js";
 import { CHAMPS } from "./champs.js";
 import { activerGlisser } from "./glisser-palette.js";
+import { cadrage } from "./cadrage.js";
 
 // Les champs, ranges comme on les cherche : d'abord le geste, puis qui, puis
 // comment joindre, puis ou.
@@ -18,8 +19,9 @@ const FAMILLES = [
 // L'ecran de creation. Le seul concu pour le PC d'abord : deposer un document
 // et poser des champs au millimetre se fait a la souris, sur grand ecran.
 //
-// Un document, une personne. Pour une seconde signature, le createur
-// telecharge le document signe, le redepose et repose ses champs.
+// Le parcours commence par le cadrage, avant meme le depot du fichier : qui va
+// signer determine le nombre de places, ce que le createur saisit, et jusqu'a
+// la forme du document livre.
 
 function enBase64(fichier) {
   return new Promise((resolve, reject) => {
@@ -31,22 +33,47 @@ function enBase64(fichier) {
 }
 
 export function afficher(vue) {
+  cadrage(vue, (choix) => afficherAtelier(vue, choix));
+}
+
+function afficherAtelier(vue, choix) {
   let fichier = null;
   let edit = null;
+
+  // En `partage` seulement, le createur pose une ligne par personne. Ailleurs
+  // il n'y a qu'un jeu de zones, repris tel quel.
+  const parPlace = choix.mode === "partage";
+
+  const rappel = {
+    solo: "One person will sign this document.",
+    partage: `${choix.places} people will sign, each in their own place.`,
+    copies: `${choix.places} people will sign in the same place. ` +
+      `Each one gets their own copy.`,
+  }[choix.mode];
 
   vue.innerHTML = `
     <section class="carte">
       <h2>Send a document to sign</h2>
+      <p class="rappel-cadrage">${rappel}
+        <a href="#/" class="lien-discret">Change</a></p>
 
       <div id="depot" class="depot">
         <input id="fichier" type="file" accept="application/pdf" hidden>
         <button type="button" id="choisir" class="principal">Choose a PDF</button>
-        <p class="aide">Up to 10 MB and 30 pages. Nothing is kept: the file is
-        deleted once it is signed and you have downloaded it.</p>
+        <p class="aide">Up to 10 MB and 30 pages. Your document is kept for
+        90 days after the last signature, then deleted.</p>
       </div>
 
       <div id="atelier" hidden>
         <div class="colonne-outils">
+          ${
+    parPlace
+      ? `<h3>Whose line are you placing?</h3>
+           <p class="aide">Place a signature box for each person, on their own
+           line. Fields you place now belong to the person selected here.</p>
+           <div id="places" class="places-palette"></div>`
+      : ""
+  }
           <h3>Place a field</h3>
           <p class="aide">Drag a field onto the document, or pick one and click
           where it goes. Drag a placed field to move it, use its corner to
@@ -102,6 +129,56 @@ export function afficher(vue) {
     }
   }
 
+  // Le selecteur de personne, en mode `partage` seulement. Une pastille par
+  // personne, avec une coche des que sa signature est posee : le createur voit
+  // d'un coup d'oeil ce qui lui reste a faire.
+  function dessinerPlaces() {
+    if (!parPlace) return;
+    const boite = vue.querySelector("#places");
+    boite.replaceChildren();
+    for (let p = 0; p < choix.places; p++) {
+      const posee = (edit?.compteSignaturesDe(p) ?? 0) === 1;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "puce puce-place" +
+        (edit?.placeActive() === p ? " puce-active" : "") +
+        (posee ? " puce-faite" : "");
+      b.textContent = `Person ${p + 1}${posee ? " ✓" : ""}`;
+      b.addEventListener("click", () => {
+        edit?.choisirPlace(p);
+        dessinerPlaces();
+      });
+      boite.appendChild(b);
+    }
+  }
+
+  // Ce qui manque encore pour pouvoir envoyer. La regle depend du mode : une
+  // signature par personne quand chacune a sa ligne, une seule au total sinon.
+  function manquants(zones) {
+    const signatures = zones.filter((z) => z.type === "signature");
+    if (!parPlace) {
+      if (signatures.length === 0) return "Place a signature field to continue.";
+      if (signatures.length > 1) {
+        return `One signature for this document. Remove ${signatures.length - 1} of them.`;
+      }
+      return "";
+    }
+    const sans = [];
+    const trop = [];
+    for (let p = 0; p < choix.places; p++) {
+      const n = signatures.filter((z) => (z.place ?? 0) === p).length;
+      if (n === 0) sans.push(p + 1);
+      if (n > 1) trop.push(p + 1);
+    }
+    if (trop.length) {
+      return `One signature per person. Too many for: ${trop.join(", ")}.`;
+    }
+    if (sans.length) {
+      return `Still missing a signature box for: ${sans.join(", ")}.`;
+    }
+    return "";
+  }
+
   // Le resume dit ou on en est, et le bouton suit : on ne propose pas une
   // action qui va echouer.
   function dessinerResume(zones) {
@@ -110,27 +187,20 @@ export function afficher(vue) {
 
     const parType = {};
     for (const z of zones) parType[z.type] = (parType[z.type] ?? 0) + 1;
-    const signatures = parType.signature ?? 0;
 
     const liste = Object.entries(parType)
       .map(([t, n]) => `${CHAMPS[t]?.libelle ?? t}${n > 1 ? ` ×${n}` : ""}`)
       .join(" · ");
 
-    let etat = "";
-    if (signatures === 0) {
-      etat = `<strong class="manque">Place a signature field to continue.</strong>`;
-    } else if (signatures > 1) {
-      etat = `<strong class="manque">One signature per document. ` +
-        `Remove ${signatures - 1} of them.</strong>`;
-    }
+    const souci = manquants(zones);
+    const etat = souci ? `<strong class="manque">${souci}</strong>` : "";
 
     boite.innerHTML = zones.length
       ? `<p class="aide">${liste}</p>${etat}`
-      : `<p class="aide">Nothing placed yet. ${
-        `A signature field is required.`
-      }</p>`;
+      : `<p class="aide">Nothing placed yet. A signature field is required.</p>`;
 
-    bouton.disabled = signatures !== 1;
+    bouton.disabled = souci !== "";
+    dessinerPlaces();
   }
 
   champFichier.addEventListener("change", async () => {
@@ -148,7 +218,7 @@ export function afficher(vue) {
       edit = editeur(calques, (zones) => {
         dire("");
         dessinerResume(zones);
-      });
+      }, parPlace);
       dessinerTypes();
       dessinerResume([]);
       activerGlisser(vue.querySelector("#types"), edit, () => dessinerTypes());
@@ -170,13 +240,8 @@ export function afficher(vue) {
   vue.querySelector("#creer").addEventListener("click", async () => {
     dire("");
     const zones = edit?.zones() ?? [];
-    const signatures = zones.filter((z) => z.type === "signature").length;
-    if (signatures === 0) {
-      return dire("Place a Signature field on the document first.");
-    }
-    if (signatures > 1) {
-      return dire("One signature per document. Remove the extra one.");
-    }
+    const souci = manquants(zones);
+    if (souci) return dire(souci);
 
     const bouton = vue.querySelector("#creer");
     bouton.disabled = true;
@@ -190,6 +255,9 @@ export function afficher(vue) {
       titre: fichier.name,
       pdf_base64: await enBase64(fichier),
       zones,
+      mode: choix.mode,
+      places_total: choix.places,
+      noms: choix.noms,
     });
 
     bouton.disabled = false;
@@ -212,25 +280,40 @@ export function afficher(vue) {
     }
 
     edit?.detacher();
-    afficherLien(vue, r.lien);
+    afficherLien(vue, r.lien, choix);
   });
 }
 
-function afficherLien(vue, lien) {
+function afficherLien(vue, lien, choix) {
   const base = location.href.split("#")[0];
-  const url = `${base}#/signer/${lien.jeton}`;
+  const url = `${base}#/signer/${lien}`;
+
+  // Un seul lien, quel que soit le nombre de personnes. C'est l'appareil qui
+  // distingue les signataires, pas l'adresse : le createur envoie la meme chose
+  // a tout le monde, y compris dans un groupe.
+  const aQui = choix.mode === "solo"
+    ? `<p class="aide">Send this link to the person who signs, by WhatsApp or
+       however you prefer. Parapheur does not send anything to anyone.</p>`
+    : `<p class="aide">Send this same link to all ${choix.places} people. Each
+       device can sign once, so you can drop it in a group.</p>`;
+
+  const suite = choix.mode === "partage"
+    ? `<p class="aide">Everyone picks their own line on the document. You can
+       download the sheet at any time, even before everyone has signed.</p>`
+    : choix.mode === "copies"
+    ? `<p class="aide">Everyone picks their name and signs their own copy. You
+       get all ${choix.places} copies in a single file.</p>`
+    : "";
 
   vue.innerHTML = `
     <section class="carte etroite">
       <h2>Your signing link is ready</h2>
-      <p class="aide">Send this link to the person who signs, by WhatsApp or
-      however you prefer. Parapheur does not send anything to anyone.</p>
+      ${aQui}
       <div class="lien-signataire" data-url="${url}">
         <input type="text" readonly value="${url}">
         <button type="button" class="secondaire" id="copier">Copy</button>
       </div>
-      <p class="aide">Need a second person to sign the same document? Once it is
-      signed, download it from Documents and send it again.</p>
+      ${suite}
       <div class="rangee">
         <a class="secondaire bouton" href="#/">Send another</a>
         <a class="principal bouton" href="#/suivi">See my documents</a>
