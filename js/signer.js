@@ -6,6 +6,7 @@ import { marqueurHtml, surveiller, verifierTout } from "./validation.js";
 import { enregistrerPdf } from "./telechargement.js";
 import { CHEMIN_PARAPHE } from "./marque.js";
 import { appareilSignataire } from "./identite.js";
+import { choisirSaPlace } from "./choix-place.js";
 
 // Un exemple par champ : la personne voit la forme attendue avant de se
 // tromper. C'est ce qui evite le plus d'allers-retours.
@@ -66,25 +67,56 @@ export async function afficher(vue, jeton) {
   if (!jeton) return annonce(vue, "Invalid link", message("introuvable"));
 
   vue.innerHTML = `<section class="carte"><p class="aide">Opening the document…</p></section>`;
-  // Le meme lien pour tout le monde : c est l appareil qui distingue les
+  // Le meme lien pour tout le monde : c'est l'appareil qui distingue les
   // signataires, et le serveur lui attribue sa place.
-  const appareil = appareilSignataire();
-  const d = await api.voirDemande(jeton, appareil);
+  const d = await api.voirDemande(jeton, appareilSignataire());
+  return presenter(vue, d, jeton);
+}
+
+// Ce que le signataire voit, une fois son etat connu. Appele aussi apres avoir
+// pris une place : la reponse du serveur porte alors ses champs.
+async function presenter(vue, d, jeton) {
   if (!d.ok) return annonce(vue, "This link is not available", message(d.raison));
 
   if (d.deja_signe) {
+    const ou = d.places_total > 1
+      ? ` Your signature is on ${
+        d.mode === "copies" ? "your copy" : `line ${d.ma_place + 1}`
+      }.`
+      : "";
     return annonce(
       vue,
       "Already signed",
-      "This document has been signed. Your copy was downloaded at the time.",
+      `You have already signed this document.${ou} Nothing more is needed from you.`,
       true,
     );
   }
 
+  // Plusieurs personnes, et il n'a pas encore de place : il doit la choisir.
+  // A une seule personne, le serveur la lui a deja attribuee et cet ecran
+  // n'existe pas, exactement comme avant.
+  if (d.ma_place === null && d.places_total > 1) {
+    return choisirSaPlace(vue, d, jeton, (frais) => presenter(vue, frais, jeton), {
+      guider: true,
+      octets: octetsDu(d),
+    });
+  }
+
+  if (d.ma_place === null) {
+    return annonce(vue, "This link is not available", message("introuvable"));
+  }
+
   const aRemplir = (d.champs ?? []).length;
+  const avancement = d.places_total > 1
+    ? `<p class="progression">${d.signees} of ${d.places_total} signed${
+      d.mode === "copies" ? "" : ` · you are on line ${d.ma_place + 1}`
+    }</p>`
+    : "";
+
   vue.innerHTML = `
     <section class="carte">
       <h2>${d.titre}</h2>
+      ${avancement}
       <p class="aide">Read the document. The highlighted boxes are what you will
       be asked for${aRemplir ? `: ${aRemplir} field${aRemplir > 1 ? "s" : ""} and your signature` : ""}.</p>
       <div id="document" class="document lecture"></div>

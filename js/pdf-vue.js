@@ -146,4 +146,7 @@ export function marquer(calque, zone, couleur, etiquette) {
   el.dataset.type = zone.type;
   el.innerHTML = `<span class="etiquette" style="background:${couleur}">${etiquette}</span>`;
   calque.appendChild(el);
+  // Rendu pour que l appelant puisse en faire une zone cliquable : c est ainsi
+  // que le signataire choisit sa ligne sur une feuille de presence.
+  return el;
 }

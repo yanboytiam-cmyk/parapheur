@@ -1209,3 +1209,87 @@ body.en-glissement .calque { cursor: grabbing; }
 @media (max-width: 640px) {
   .champ-nom { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* --- Le signataire choisit sa place ------------------------------------- */
+/* Personne ne devine tout seul qu'il faut taper une ligne du document. Une
+   sequence courte le dit, puis le document lui-meme devient le choix. */
+
+.guide { text-align: center; }
+.guide-progres { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+.guide-progres span {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bord-fort);
+  transition: background 200ms ease;
+}
+.guide-progres span.actif { background: var(--action); }
+.guide .principal { margin-top: 22px; }
+.guide #passer {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: 0;
+  color: var(--gris);
+  font-size: .88rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Le choix par le nom : mode `copies`. Une cible large, prise au pouce. */
+.liste-choix { display: grid; gap: 8px; margin: 18px 0; }
+.option-nom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--feuille);
+  font: inherit;
+  text-align: left;
+  color: var(--encre);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.option-nom:hover:not([disabled]) {
+  border-color: var(--action);
+  background: var(--action-voile);
+}
+.option-nom[disabled] { opacity: .45; cursor: not-allowed; }
+.option-nom-texte { font-weight: 600; }
+.option-etat {
+  font-size: .8rem;
+  color: var(--gris);
+  font-family: var(--mono, ui-monospace, monospace);
+}
+
+/* Les places sur le document : libre appelle le doigt, prise est fermee. Une
+   place prise reste visible, sinon le signataire croit qu'elle a disparu. */
+.place-libre { cursor: pointer; animation: respire 2.4s ease-in-out infinite; }
+.place-libre:hover, .place-libre:focus-visible { filter: brightness(.94); outline: none; }
+.place-libre:focus-visible { box-shadow: 0 0 0 3px var(--action-voile); }
+.place-prise { opacity: .5; cursor: not-allowed; }
+
+@keyframes respire {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 157, 118, .35); }
+  50% { box-shadow: 0 0 0 6px rgba(15, 157, 118, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .place-libre { animation: none; }
+}
+
+/* Ou en est la signature, des qu'il y a plusieurs personnes. */
+.progression {
+  display: inline-block;
+  margin: -6px 0 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--action-voile);
+  color: var(--action-sombre);
+  font-size: .84rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
