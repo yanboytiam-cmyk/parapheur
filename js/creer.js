@@ -61,7 +61,7 @@ function afficherAtelier(vue, choix) {
         <input id="fichier" type="file" accept="application/pdf" hidden>
         <button type="button" id="choisir" class="principal">Choose a PDF</button>
         <p class="aide">Up to 10 MB and 30 pages. Your document is kept for
-        90 days after the last signature, then deleted.</p>
+        240 days after the last signature, then deleted.</p>
       </div>
 
       <div id="atelier" hidden>
