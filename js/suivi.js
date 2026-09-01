@@ -96,7 +96,13 @@ export async function afficher(vue) {
       bouton.textContent = "Download";
       const p = bouton.closest(".demande").querySelector(".compte-rebours");
       p.hidden = false;
-      p.textContent = message(r2.raison);
+      // Nommer les places concernees : « une signature manque » sans dire
+      // laquelle oblige a rouvrir le document pour chercher.
+      const places = Array.isArray(r2.places) ? r2.places : [];
+      p.textContent = places.length
+        ? message(r2.raison) + " (signer " +
+          places.map((n) => Number(n) + 1).join(", ") + ")"
+        : message(r2.raison);
       return;
     }
 

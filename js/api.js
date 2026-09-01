@@ -64,6 +64,10 @@ export const MESSAGES = {
   introuvable: "This link is no longer valid.",
   incomplete: "Not everyone has signed yet.",
   document_absent: "This document has been deleted.",
+  // Mieux vaut refuser que remettre un document signe dont la signature est
+  // absente : c'est ce que l'outil faisait avant le 2026-09-01.
+  preuve_absente: "A signature is missing from this document, so we cannot " +
+    "produce it. Please ask the person to sign again.",
   signature_illisible: "We could not read that signature. Please try again.",
   stockage: "Something went wrong saving the document. Please try again.",
   base: "Something went wrong. Please try again.",
