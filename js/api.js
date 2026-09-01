@@ -27,10 +27,15 @@ export const api = {
   // Le lien est le meme pour tout le monde : c'est `appareil_id` qui distingue
   // les signataires. `place` n'est envoye qu'au moment ou le signataire choisit
   // la sienne, et le serveur la lui reserve dans le meme appel.
-  voirDemande: (jeton, appareil_id, place) =>
-    poster("voir-demande", place === undefined
-      ? { jeton, appareil_id }
-      : { jeton, appareil_id, place }),
+  // `avec_pdf` demande les octets du document dans la reponse. On ne s'en sert
+  // qu'en secours : normalement le document arrive par une URL signee, que le
+  // navigateur peut mettre en cache.
+  voirDemande: (jeton, appareil_id, place, avec_pdf) => {
+    const corps = { jeton, appareil_id };
+    if (place !== undefined) corps.place = place;
+    if (avec_pdf) corps.avec_pdf = true;
+    return poster("voir-demande", corps);
+  },
 
   signer: (jeton, appareil_id, place, valeurs, signature_png_base64) =>
     poster("signer", { jeton, appareil_id, place, valeurs, signature_png_base64 }),

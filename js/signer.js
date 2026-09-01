@@ -130,9 +130,22 @@ async function presenter(vue, d, jeton) {
   boutonSigner.disabled = true;
 
   try {
-    // Le document arrive dans la reponse : pdf.js le lit depuis la memoire,
-    // sans avoir a joindre un autre domaine.
-    const calques = await rendre(zoneDoc, octetsDu(d));
+    // Le document arrive par une URL signee, que le navigateur peut mettre en
+    // cache. S'il n'arrive pas a la joindre, on redemande les octets au serveur
+    // et on reessaie : c'est le filet qui justifiait l'envoi systematique du
+    // document dans la reponse, garde ici sans en payer le prix a chaque fois.
+    let source = octetsDu(d);
+    let calques;
+    try {
+      calques = await rendre(zoneDoc, source);
+    } catch (premierSouci) {
+      if (d.pdf_base64) throw premierSouci; // on avait deja les octets
+      console.warn("URL du document injoignable, on redemande les octets", premierSouci);
+      const frais = await api.voirDemande(jeton, appareilSignataire(), undefined, true);
+      if (!frais?.ok || !frais.pdf_base64) throw premierSouci;
+      d.pdf_base64 = frais.pdf_base64;
+      calques = await rendre(zoneDoc, octetsDu(d));
+    }
     for (const z of d.zones ?? []) {
       marquer(calques[z.page], z, couleurDe(z.type), CHAMPS[z.type]?.libelle ?? z.type);
     }

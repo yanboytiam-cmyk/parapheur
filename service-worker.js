@@ -13,7 +13,7 @@
 // D'ou deux regimes : les bibliotheques figees sont gardees pour de bon, notre
 // code est toujours redemande.
 
-const CACHE = "parapheur-vendor-3";
+const CACHE = "parapheur-vendor-4";
 const FIGE = /\/vendor\//;
 const NOTRE_CODE = /\.(js|mjs|css|html|webmanifest)$/;
 
