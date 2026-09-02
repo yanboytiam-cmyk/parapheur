@@ -1,7 +1,7 @@
 // Tous les appels au serveur passent par ici. Aucune cle secrete ne vit dans
 // cette page : les fonctions portent la leur, la page ne porte rien.
 
-const BASE = "https://nzjhnilpkjoklvhzxeko.supabase.co/functions/v1";
+const BASE = "https://hzgxcgwrdbfrkigewgcr.supabase.co/functions/v1";
 
 async function poster(fn, corps) {
   try {
