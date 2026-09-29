@@ -8,17 +8,33 @@ import { enregistrerPdf } from "./telechargement.js";
 
 function etatLisible(d) {
   const qui = d.signataires?.[0];
-  if (d.etat === "telecharge") return { texte: "Downloaded", classe: "gris" };
+  const total = d.signataires?.length ?? 1;
+  const signees = (d.signataires ?? []).filter((s) => s.signe_le).length;
+  if (d.etat === "telecharge") return { texte: "Signed and downloaded", classe: "gris" };
   if (d.etat === "complete") {
     return {
-      texte: `Signed by ${qui?.nom_saisi ?? qui?.nom_attendu ?? "them"}`,
+      texte: total > 1
+        ? `Signed by all ${total}`
+        : `Signed by ${qui?.nom_saisi ?? qui?.nom_attendu ?? "them"}`,
       classe: "vert",
     };
+  }
+  if (signees > 0) {
+    return { texte: `${signees} of ${total} signed`, classe: "orange" };
   }
   return {
     texte: `Waiting for ${qui?.nom_attendu ?? "signature"}`,
     classe: "orange",
   };
+}
+
+// Le libelle du bouton dit ce qu'on va recevoir : le document tel qu'il est,
+// signe ou en cours. Le bouton est toujours la. Il disparaissait apres un
+// premier telechargement, et Collins a cru ses documents perdus (2026-09-29).
+function libelleBouton(d) {
+  if (d.etat === "telecharge") return "Download again";
+  if (d.etat === "complete") return "Download";
+  return "Download progress";
 }
 
 function joursRestants(expire) {
@@ -66,6 +82,9 @@ export async function afficher(vue) {
     const pret = d.etat === "complete";
     const carte = document.createElement("article");
     carte.className = "demande";
+    // Un compte illimite (Collins) ne voit aucune date : ses documents ne
+    // s'effacent jamais. Un chronometre qui tourne inquiete sans raison.
+    const pied = r.illimite ? "" : `<span class="aide">${joursRestants(d.expire_le)}</span>`;
     carte.innerHTML = `
       <div class="demande-titre">
         ${pret ? '<span class="pastille-alerte" aria-label="Ready"></span>' : ""}
@@ -73,12 +92,8 @@ export async function afficher(vue) {
       </div>
       <div class="demande-etat ${etat.classe}">${etat.texte}</div>
       <div class="demande-pied">
-        <span class="aide">${joursRestants(d.expire_le)}</span>
-        ${
-      pret
-        ? `<button type="button" class="principal" data-id="${d.id}">Download</button>`
-        : ""
-    }
+        ${pied}
+        <button type="button" class="${pret ? "principal" : "secondaire"}" data-id="${d.id}">${libelleBouton(d)}</button>
       </div>
       <p class="compte-rebours" hidden></p>`;
     liste.appendChild(carte);
@@ -87,14 +102,15 @@ export async function afficher(vue) {
   liste.addEventListener("click", async (evt) => {
     const bouton = evt.target.closest("button[data-id]");
     if (!bouton) return;
+    const libelle = bouton.textContent;
     bouton.disabled = true;
     bouton.textContent = "Preparing…";
 
     const r2 = await api.telecharger(id.email, id.code, bouton.dataset.id);
+    const p = bouton.closest(".demande").querySelector(".compte-rebours");
     if (!r2.ok) {
       bouton.disabled = false;
-      bouton.textContent = "Download";
-      const p = bouton.closest(".demande").querySelector(".compte-rebours");
+      bouton.textContent = libelle;
       p.hidden = false;
       // Nommer les places concernees : « une signature manque » sans dire
       // laquelle oblige a rouvrir le document pour chercher.
@@ -111,32 +127,13 @@ export async function afficher(vue) {
     bouton.disabled = false;
     bouton.onclick = () => enregistrerPdf(r2.url, r2.nom_fichier ?? r2.titre);
 
-    const p = bouton.closest(".demande").querySelector(".compte-rebours");
+    // Pas de compte a rebours : le fichier est enregistre, et il reste sur le
+    // serveur. On dit juste ou il en est.
     p.hidden = false;
-    p.dataset.nom = fichier.nom;
-    compteARebours(p, r2.efface_dans_secondes);
+    const etatFichier = r2.complet
+      ? "fully signed"
+      : `${r2.signees ?? 0} of ${r2.places_total ?? "?"} signed so far`;
+    p.innerHTML = `Saved as <strong>${fichier.nom}</strong>, ${etatFichier}. ` +
+      `It stays in your documents.`;
   });
 }
-
-// Le compte a rebours n'est qu'un affichage : c'est le serveur qui efface,
-// toutes les cinq minutes. Il dit la verite a la minute pres, pas a la seconde.
-function compteARebours(el, secondes) {
-  const fin = Date.now() + secondes * 1000;
-  const tic = () => {
-    const reste = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
-    if (reste === 0) {
-      el.textContent = "This copy has now been deleted from the server.";
-      return;
-    }
-    const m = Math.floor(reste / 60);
-    const s = String(reste % 60).padStart(2, "0");
-    el.innerHTML =
-      `<span class="minuteur">${m}:${s}</span>` +
-      `<span>Saved as <strong>${el.dataset.nom ?? "the signed PDF"}</strong>. ` +
-      `The server copy is deleted when this reaches zero.</span>`;
-    setTimeout(tic, 1000);
-  };
-  tic();
-}
-
-
